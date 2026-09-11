@@ -6,6 +6,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 一个开箱即用的 **API 管理与分发平台**：FastAPI + SQLite/MySQL 双引擎后端，原生 HTML/CSS/JS + ECharts 前端（零构建），包含 **Apple 风格官网门户**、**管理员控制台**与**用户控制台**三套界面，所有接口可通过统一网关真实调用。
+<img width="1894" height="870" alt="image" src="https://github.com/user-attachments/assets/2264c262-1009-4bc7-a857-26eaab4473a2" />
 
 **核心能力**：接口全生命周期管理 · 四类接口形态（内置/插件沙箱/外部转发/Mock）· API 密钥与接口白名单 · 积分计费 · 通知与维护模式 · 在线更新（GitHub Release）· WebSocket 实时调用流 · Docker 一键部署
 
