@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232e7cf6%22/><text x=%2250%22 y=%2272%22 font-size=%2260%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22 font-weight=%22bold%22>A</text></svg>">
+<title>用户控制台 - APIStar 接口管理平台</title>
+<link rel="stylesheet" href="/static/common.css?v=9">
+<style>
+  /* 欢迎横幅 */
+  .welcome {
+    background: linear-gradient(120deg, #2e7cf6 0%, #1a9ce0 48%, #06b6d4 100%);
+    border-radius: var(--radius); color: #fff;
+    padding: 26px 28px; margin-bottom: 18px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 14px 34px -14px rgba(46, 124, 246, .55);
+  }
+  .welcome::before, .welcome::after { content: ""; position: absolute; border-radius: 50%; }
+  .welcome::before { width: 300px; height: 300px; right: -80px; top: -140px; background: rgba(255,255,255,.14); }
+  .welcome::after { width: 200px; height: 200px; right: 160px; bottom: -120px; background: rgba(255,255,255,.09); }
+  .welcome h2 { font-size: 21px; font-weight: 700; position: relative; z-index: 1; }
+  .welcome p { margin-top: 7px; font-size: 13px; color: #dcf2ff; position: relative; z-index: 1; }
+  .welcome .stats-inline { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); display: flex; gap: 34px; z-index: 1; }
+  .welcome .stats-inline b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .welcome .stats-inline span { font-size: 12px; color: #d3eeff; }
+
+  /* 市场卡片 */
+  .api-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; }
+  .api-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 18px; cursor: pointer; transition: all .18s; position: relative;
+    display: flex; flex-direction: column;
+  }
+  .api-card:hover { border-color: #c7d2fe; box-shadow: 0 14px 30px -14px rgba(79, 70, 229, .35); transform: translateY(-3px); }
+  .api-card .head { display: flex; align-items: center; gap: 9px; }
+  .api-card .head b { font-size: 14.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .api-card .path {
+    font-family: Consolas, monospace; font-size: 12px; color: var(--text-3);
+    background: #f8fafc; border: 1px solid #eef2f7; border-radius: 8px;
+    padding: 5px 9px; margin-top: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .api-card .desc { color: var(--text-2); font-size: 12.5px; line-height: 1.7; margin-top: 10px; flex: 1;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 42px; }
+  .api-card .foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #eef2f7; }
+  .api-card .foot .calls { margin-left: auto; font-size: 12px; color: var(--text-3); }
+  .api-card .foot .calls b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .api-card .corner { position: absolute; right: 14px; top: 14px; font-size: 11px; color: #a5b4fc; opacity: 0; transition: opacity .15s; font-weight: 600; }
+  .api-card:hover .corner { opacity: 1; }
+
+  /* Tab 切换 */
+  .tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 11px; width: fit-content; }
+  .tabs button {
+    border: none; background: transparent; padding: 7px 16px; border-radius: 8px;
+    font-size: 13px; font-family: var(--font); color: var(--text-2); cursor: pointer; font-weight: 500;
+  }
+  .tabs button.active { background: #fff; color: var(--text); font-weight: 600; box-shadow: 0 2px 6px rgba(15,23,42,.08); }
+
+  .doc-sec b.t { font-size: 13.5px; display: block; margin: 20px 0 10px; color: var(--text); }
+  .doc-sec > div:first-child b.t { margin-top: 0; }
+
+  .test-param { margin-bottom: 13px; }
+  .test-param .lab { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; font-size: 12.5px; color: var(--text-2); font-weight: 500; }
+  .test-param .lab .req { color: var(--danger); }
+  .test-param .lab .pos { font-size: 10.5px; padding: 1px 7px; border-radius: 6px; background: #f1f5f9; color: var(--text-3); font-family: Consolas, monospace; }
+
+  .resp-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+
+  /* 密钥卡片 */
+  .key-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+  .key-card + .key-card { margin-top: 12px; }
+  .key-card .kicon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; flex: none; }
+  .key-card .kmain { flex: 1; min-width: 0; }
+  .key-card .kmain .krow { display: flex; align-items: center; gap: 8px; }
+  .key-card .kmain b { font-size: 14px; }
+  .key-card .kval { font-family: Consolas, monospace; font-size: 12.5px; color: var(--text-2); margin-top: 5px; display: flex; align-items: center; gap: 8px; }
+  .key-card .kval .val { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 7px; padding: 3px 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .key-card .kmeta { font-size: 11.5px; color: var(--text-3); margin-top: 5px; }
+  .key-card .kops { display: flex; gap: 6px; flex: none; }
+  .mini-btn { height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff; font-size: 12px; color: var(--text-2); cursor: pointer; font-family: var(--font); transition: all .12s; }
+  .mini-btn:hover { border-color: #c7d2fe; color: var(--primary); }
+  .mini-btn.danger:hover { border-color: #fecaca; color: var(--danger); background: #fef2f2; }
+
+  /* 通知条：顶栏下方，级别分色 */
+  .notice-bar {
+    display: none; align-items: center; gap: 10px;
+    margin: 0 22px; margin-top: 12px; padding: 10px 16px;
+    border-radius: 13px; font-size: 13px; cursor: pointer;
+    border: 1px solid; transition: box-shadow .2s;
+  }
+  .notice-bar:hover { box-shadow: 0 6px 18px -8px rgba(30,70,140,.25); }
+  .notice-bar .nicon { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 12px; flex: none; }
+  .notice-bar .ntitle { font-weight: 600; }
+  .notice-bar .nmore { margin-left: auto; color: inherit; opacity: .7; font-size: 12px; white-space: nowrap; }
+  .notice-bar.info { background: #eff6ff; border-color: #cfe0fb; color: #1d4ed8; }
+  .notice-bar.info .nicon { background: #dbeafe; }
+  .notice-bar.warn { background: #fffbeb; border-color: #fdeeb8; color: #92400e; }
+  .notice-bar.warn .nicon { background: #fdeeb8; }
+  .notice-bar.critical { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+  .notice-bar.critical .nicon { background: #fecaca; }
+
+  /* 维护遮罩：覆盖工作区，不可操作 */
+  .maint-mask {
+    position: fixed; inset: 0; z-index: 500; display: none;
+    background: linear-gradient(160deg, #f3f7fd 0%, #e8eef8 100%);
+    place-items: center;
+  }
+  .maint-mask.open { display: grid; }
+  .maint-card {
+    text-align: center; max-width: 480px; padding: 40px;
+    background: #fff; border-radius: 24px;
+    box-shadow: 0 30px 80px -30px rgba(24,60,120,.35);
+  }
+  .maint-card .mi { font-size: 52px; margin-bottom: 18px; }
+  .maint-card h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 10px; }
+  .maint-card p { color: var(--text-2); font-size: 14px; line-height: 1.8; margin-bottom: 22px; }
+  .maint-card .pulse-dot { display: inline-flex; gap: 5px; }
+  .maint-card .pulse-dot i { width: 7px; height: 7px; border-radius: 50%; background: var(--warning); animation: mpulse 1.4s infinite; }
+  .maint-card .pulse-dot i:nth-child(2) { animation-delay: .2s; }
+  .maint-card .pulse-dot i:nth-child(3) { animation-delay: .4s; }
+  @keyframes mpulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .maint-card .pulse-dot i { animation: none; opacity: .7; } }
+
+  /* 通知中心弹窗 */
+  .notice-item { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid #f1f6fb; }
+  .notice-item:last-child { border-bottom: none; }
+  .notice-item .nicon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; font-size: 16px; }
+  .notice-item .nb b { font-size: 13.5px; display: block; margin-bottom: 4px; }
+  .notice-item .nb p { font-size: 12.5px; color: var(--text-2); line-height: 1.7; }
+  .notice-item .nb .nt { font-size: 11px; color: var(--text-3); margin-top: 5px; }
+
+  /* ---- 移动端适配 ---- */
+  @media (max-width: 860px) {
+    /* 顶栏：积分徽章紧凑化（纯图标+数字），管理端按钮隐藏（用户菜单里有入口） */
+    #top-credits { padding: 4px 10px; font-size: 12px; }
+    #btn-admin { display: none !important; }
+    .welcome { padding: 20px 18px; }
+    .welcome h2 { font-size: 18px; }
+    .welcome p { display: none; }                    /* 横幅副文案省空间 */
+    .welcome .stats-inline {
+      position: static; transform: none; margin-top: 16px;
+      justify-content: flex-start; gap: 20px; flex-wrap: wrap;
+    }
+    .welcome .stats-inline b { font-size: 18px; }
+    .api-grid { grid-template-columns: 1fr !important; }
+    .api-card .foot { flex-wrap: wrap; }
+    .api-card .foot .calls { margin-left: 0; width: 100%; }
+    /* 密钥卡片纵排 */
+    .key-card { flex-wrap: wrap; }
+    .key-card .kops { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+    .key-card .kval { flex-wrap: wrap; }
+    /* 通知条 */
+    .notice-bar { margin: 0 10px; }
+    .notice-bar .nmore { display: none; }
+    /* 维护卡片 */
+    .maint-card { margin: 0 16px; padding: 30px 22px; }
+    /* 接口市场工具栏 */
+    #mk-cates { overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 6px; }
+    #mk-cates .chip { white-space: nowrap; flex: none; }
+    .resp-meta { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="drawer-scrim" id="drawer-scrim"></div>
+
+<div class="app-shell">
+  <!-- ============ 侧边栏 ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">A</div>
+      <div><b>APIStar</b><span>OPEN PLATFORM</span></div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-group">工作台</div>
+      <a data-view="dashboard" class="active" id="nav-dashboard"></a>
+      <div class="nav-group">开放能力</div>
+      <a data-view="market" id="nav-market"></a>
+      <a data-view="keys" id="nav-keys"></a>
+      <div class="nav-group">我的数据</div>
+      <a data-view="logs" id="nav-logs"></a>
+      <a data-view="credits" id="nav-credits"></a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="flex" style="gap:10px">
+        <div class="avatar" id="side-avatar">用</div>
+        <div style="line-height:1.3">
+          <b id="side-name" style="color:#e2e8f0;font-size:13px">演示用户</b><br>
+          <span style="font-size:11px;color:#64748b">@user · 普通用户</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ 主区域 ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" id="btn-hamburger" aria-label="打开导航"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <div class="crumb" id="crumb">数据总览<small>你的调用情况一览</small></div>
+      <div class="spacer"></div>
+      <span class="tag amber" id="top-credits" title="我的积分余额" style="cursor:pointer;font-size:12.5px;padding:5px 12px">💰 <b id="top-credits-num">-</b> 积分</span>
+      <a class="btn btn-ghost btn-sm" href="/admin" id="btn-admin" style="display:none">进入管理端 ↗</a>
+      <div class="user-chip" id="user-chip">
+        <div class="avatar" id="top-avatar">用</div>
+        <div class="info"><b id="top-name">演示用户</b><span id="top-username">@user</span></div>
+        <span style="color:var(--text-3);font-size:11px">▾</span>
+        <div class="dropdown" id="user-menu">
+          <a data-act="admin" id="menu-admin" style="display:none">🛡️ 管理端控制台</a>
+          <a data-act="password">🔒 修改密码</a>
+          <a data-act="logout" class="danger">⏻ 退出登录</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- 维护遮罩：开启后覆盖全部工作区 -->
+      <div class="maint-mask" id="maint-mask">
+        <div class="maint-card">
+          <div class="mi">🛠️</div>
+          <h2>系统维护中</h2>
+          <p id="maint-msg">系统正在维护，请稍后再试。</p>
+          <div class="pulse-dot"><i></i><i></i><i></i></div>
+          <div style="margin-top:22px;display:flex;gap:10px;justify-content:center">
+            <button class="btn btn-ghost" id="btn-maint-logout">退出并切换账号</button>
+          </div>
+          <p style="margin-top:16px;font-size:12px;color:var(--text-3)">页面每 30 秒自动检测恢复，无需手动刷新</p>
+        </div>
+      </div>
+
+      <!-- 通知条：轮播展示启用中的通知，点击看全部 -->
+      <div class="notice-bar" id="notice-bar" style="display:none">
+        <span class="nicon" id="nb-icon">📢</span>
+        <span class="ntitle" id="nb-title"></span>
+        <span class="nmore" id="nb-more">共 1 条 ›</span>
+      </div>
+
+      <!-- ======== 视图：数据总览 ======== -->
+      <section class="page-view active" id="view-dashboard">
+        <div class="welcome">
+          <h2 id="welcome-title">你好，演示用户 👋</h2>
+          <p>欢迎回到 APIStar 开放平台，今天也可以在这里浏览接口、调试调用、管理密钥。</p>
+          <div class="stats-inline">
+            <div><b id="w-total">-</b><span>累计调用</span></div>
+            <div><b id="w-week">-</b><span>近 7 天调用</span></div>
+            <div><b id="w-rate">-</b><span>调用成功率</span></div>
+          </div>
+        </div>
+
+        <div class="grid-stats">
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#e8f2ff,#e0f8ff);color:#2e7cf6">⚡</div>
+            <div class="num" id="st-calls">-</div>
+            <div class="label">累计调用次数</div>
+            <div class="deco" style="background:#2e7cf6"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#e3f9ef,#e9fbff);color:#10b981">📆</div>
+            <div class="num" id="st-week">-</div>
+            <div class="label">近 7 天调用</div>
+            <div class="deco" style="background:#10b981"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#fff4dd,#fffbe8);color:#f59e0b">✅</div>
+            <div class="num" id="st-rate">-<small>%</small></div>
+            <div class="label">请求成功率</div>
+            <div class="deco" style="background:#f59e0b"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#ffe9f3,#fff0f0);color:#ec4899">🔑</div>
+            <div class="num" id="st-keys">-</div>
+            <div class="label">专属密钥 · 上限 5 个</div>
+            <div class="deco" style="background:#ec4899"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><b>我的调用趋势</b><span class="hint">近 14 天</span></div>
+            <div class="card-body"><div id="chart-trend" style="height:300px"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><b>我最常调用的接口</b><span class="hint">TOP 5</span></div>
+            <div class="card-body" id="top-apis"></div>
+          </div>
+        </div>
+
+        <div class="card section-gap" style="margin-top:16px">
+          <div class="card-head"><b>最近调用记录</b><span class="right"><a class="muted" data-goto="logs" style="cursor:pointer">查看全部 →</a></span></div>
+          <div class="card-body" style="padding-top:8px">
+            <div class="table-wrap">
+              <table class="table" style="font-size:12.5px">
+                <thead><tr><th>接口</th><th>方法</th><th>状态码</th><th>耗时</th><th>时间</th></tr></thead>
+                <tbody id="dash-recent"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：接口市场 ======== -->
+      <section class="page-view" id="view-market">
+        <div class="page-title">接口市场</div>
+        <div class="page-sub">浏览全部开放接口，点击卡片查看文档或在线调试</div>
+
+        <div class="toolbar">
+          <div class="search-box" style="width:320px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input" id="mk-kw" placeholder="搜索接口名称、路径或描述">
+          </div>
+          <div class="grow"></div>
+          <select class="select" id="mk-sort" style="width:130px">
+            <option value="hot">按热度排序</option>
+            <option value="name">按名称排序</option>
+            <option value="new">按更新时间</option>
+          </select>
+          <span class="muted" id="mk-count"></span>
+        </div>
+        <div class="toolbar" id="mk-cates" style="margin-bottom:18px"></div>
+
+        <div class="api-grid" id="mk-grid"></div>
+      </section>
+
+      <!-- ======== 视图：我的密钥 ======== -->
+      <section class="page-view" id="view-keys">
+        <div class="flex" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="page-title">我的密钥</div>
+            <div class="page-sub">API Key 用于调用开放接口，请妥善保管，避免泄露</div>
+          </div>
+          <button class="btn btn-primary" id="btn-key-new">＋ 创建密钥</button>
+        </div>
+        <div id="key-list"></div>
+        <div class="card" style="margin-top:18px;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;background:linear-gradient(120deg,#fffbeb,#fefce8)">
+          <span style="font-size:18px">💡</span>
+          <div style="font-size:12.5px;color:#92400e;line-height:1.9">
+            <b>如何调用需登录的接口：</b>在请求头携带你的专属 token（上方任一启用中的密钥）：<span class="kbd">Authorization: Bearer &lt;你的密钥&gt;</span>。<br>
+            示例：<span class="kbd">curl http://127.0.0.1:8000/svc/weather?city=北京 -H "Authorization: Bearer sk-****"</span>；
+            标注「免登录」的接口无需任何凭证即可直接调用。密钥请妥善保管，泄露后可随时删除重建。
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：我的调用记录 ======== -->
+      <section class="page-view" id="view-logs">
+        <div class="flex" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="page-title">我的调用记录</div>
+            <div class="page-sub">仅展示你自己账号发起的接口调用流水</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="btn-ulog-refresh">⟳ 刷新</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding-bottom:2px">
+            <div class="toolbar" style="margin-bottom:12px">
+              <select class="select" id="ulog-result" style="width:130px">
+                <option value="">全部结果</option>
+                <option value="success">仅成功</option>
+                <option value="fail">仅失败</option>
+              </select>
+              <select class="select" id="ulog-status" style="width:120px">
+                <option value="">全部状态码</option>
+                <option value="200">200</option>
+                <option value="400">400</option>
+                <option value="401">401</option>
+                <option value="404">404</option>
+                <option value="429">429 限流</option>
+                <option value="500">500</option>
+              </select>
+              <input class="input" id="ulog-from" type="date" style="width:150px" title="开始日期">
+              <span class="muted">至</span>
+              <input class="input" id="ulog-to" type="date" style="width:150px" title="结束日期">
+              <button class="btn btn-ghost btn-sm" id="ulog-clear">清空</button>
+              <div class="grow"></div>
+              <span class="muted" id="ulog-count"></span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table" style="font-size:13px">
+              <thead><tr>
+                <th>时间</th><th style="min-width:170px">接口</th><th>方法</th><th>来源 IP</th><th>状态码</th><th>耗时</th><th>结果</th>
+              </tr></thead>
+              <tbody id="ulog-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagebar" id="ulog-pager"></div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：我的积分 ======== -->
+      <section class="page-view" id="view-credits">
+        <div class="welcome" style="background:linear-gradient(120deg,#f59e0b 0%,#f97316 48%,#ec4899 100%);box-shadow:0 14px 34px -14px rgba(245,158,11,.55)">
+          <h2><span id="w-cred-balance">-</span> 积分</h2>
+          <p>每日签到领 <b id="w-cred-reward">-</b> 积分；调用计费接口按定价扣分，仅成功调用才扣</p>
+          <div class="stats-inline">
+            <button class="btn" id="btn-checkin" style="height:44px;padding:0 26px;font-size:14.5px;font-weight:600;background:#fff;color:#b45309;border:none;border-radius:12px;cursor:pointer;box-shadow:0 8px 20px -8px rgba(0,0,0,.3)">📅 每日签到</button>
+          </div>
+        </div>
+
+        <div class="card section-gap">
+          <div class="card-head"><b>我的积分流水</b><span class="hint">签到奖励 / 调用消耗 / 管理员调整</span></div>
+          <div class="table-wrap">
+            <table class="table" style="font-size:13px">
+              <thead><tr><th>时间</th><th>变动</th><th>余额</th><th>事由</th></tr></thead>
+              <tbody id="cred-log-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagebar" id="cred-log-pager"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- 接口详情抽屉 -->
+<div class="drawer-mask" id="drawer-mask"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head" id="drawer-head"></div>
+  <div class="drawer-body" id="drawer-body"></div>
+</div>
+
+<script src="/static/vendor/echarts.min.js"></script>
+<script src="/static/common.js?v=9"></script>
+<script>
+const me = Auth.guard();   // 用户端：任意已登录角色
+
+function initPage() {
+  document.getElementById("side-name").textContent = me.nickname;
+  document.getElementById("top-name").textContent = me.nickname;
+  document.getElementById("top-username").textContent = "@" + me.username;
+  document.getElementById("side-avatar").textContent = initials(me.nickname);
+  document.getElementById("top-avatar").textContent = initials(me.nickname);
+  document.getElementById("welcome-title").textContent = "你好，" + me.nickname + " 👋";
+  if (me.role === "admin") {
+    document.getElementById("btn-admin").style.display = "";
+    document.getElementById("menu-admin").style.display = "";
+  }
+
+  const navDefs = {
+    dashboard: ["dashboard", "数据总览"],
+    market: ["market", "接口市场"],
+    keys: ["key", "我的密钥"],
+    logs: ["logs", "我的调用记录"],
+    credits: ["dashboard", "我的积分"]
+  };
+  Object.entries(navDefs).forEach(([k, [icon, label]]) => {
+    const a = document.getElementById("nav-" + k);
+    a.innerHTML = ICONS[icon] + "<span>" + label + "</span>";
+    a.addEventListener("click", () => switchView(k));
+  });
+
+  const chip = document.getElementById("user-chip"), menu = document.getElementById("user-menu");
+  chip.addEventListener("click", e => {
+    if (e.target.closest(".dropdown")) return;
+    menu.classList.toggle("open");
+  });
+  document.addEventListener("click", e => { if (!chip.contains(e.target)) menu.classList.remove("open"); });
+  menu.querySelector('[data-act="admin"]').addEventListener("click", () => location.href = "/admin");
+  menu.querySelector('[data-act="password"]').addEventListener("click", passwordModal);
+  menu.querySelector('[data-act="logout"]').addEventListener("click", async () => {
+    try { await api("/api/auth/logout", { method: "POST" }); } catch (e) {}
+    Auth.clear();
+    location.href = "/";
+  });
+
+  bindMarket();
+  bindKeys();
+  bindUserLogs();
+  bindNoticesAndMaintenance();
+  bindCreditsView();
+  document.querySelectorAll("[data-goto]").forEach(el =>
+    el.addEventListener("click", () => switchView(el.dataset.goto)));
+
+  switchView(location.hash.replace("#", "") || "dashboard", true);
+}
+
+const VIEW_TITLES = {
+  dashboard: ["数据总览", "你的调用情况一览"],
+  market: ["接口市场", "浏览并调试全部开放接口"],
+  keys: ["我的密钥", "API 调用凭证管理"],
+  logs: ["我的调用记录", "你自己账号的接口调用流水"],
+  credits: ["我的积分", "余额、签到与流水"]
+};
+function switchView(v) {
+  if (!VIEW_TITLES[v]) v = "dashboard";
+  document.querySelectorAll(".page-view").forEach(s => s.classList.remove("active"));
+  document.getElementById("view-" + v).classList.add("active");
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("active", a.dataset.view === v));
+  document.getElementById("crumb").innerHTML = VIEW_TITLES[v][0] + "<small>" + VIEW_TITLES[v][1] + "</small>";
+  location.hash = v;
+  if (v === "dashboard") loadDashboard();
+  if (v === "market") loadMarket();
+  if (v === "keys") loadKeys();
+  if (v === "logs") loadUserLogs();
+  if (v === "credits") loadCreditsView();
+}
+
+/* ==================== 数据总览 ==================== */
+function loadDashboard() {
+  api("/api/user/dashboard").then(d => {
+    const s = d.stats;
+    document.getElementById("w-total").textContent = fmtFull(s.callsTotal);
+    document.getElementById("w-week").textContent = fmtFull(s.callsWeek);
+    document.getElementById("w-rate").textContent = s.successRate + "%";
+    document.getElementById("st-calls").innerHTML = fmtFull(s.callsTotal);
+    document.getElementById("st-week").innerHTML = fmtFull(s.callsWeek);
+    document.getElementById("st-rate").innerHTML = s.successRate + "<small>%</small>";
+    document.getElementById("st-keys").innerHTML = s.keyCount;
+
+    renderTrend(d.trend);
+    renderTopApis(d.topApis);
+    renderDashRecent(d.recentLogs || []);
+    refreshCreditsBadge();
+  });
+}
+
+function renderDashRecent(logs) {
+  const el = document.getElementById("dash-recent");
+  if (!el) return;
+  el.innerHTML = logs.length ? logs.map(l =>
+    "<tr>" +
+      '<td><div class="cell-main" style="font-size:12.5px">' + esc(l.api_name) + "</div></td>" +
+      "<td>" + methodBadge(l.method) + "</td>" +
+      "<td>" + codePill(l.status_code) + "</td>" +
+      "<td>" + latencyTag(l.latency) + "</td>" +
+      '<td class="muted" style="white-space:nowrap">' + l.created_at.slice(5, 16) + "</td>" +
+    "</tr>").join("")
+    : '<tr><td colspan="5"><div class="empty">' + ICONS.empty + "<p>还没有调用记录，去接口市场试试吧</p></div></td></tr>";
+}
+
+function renderTrend(trend) {
+  const el = document.getElementById("chart-trend");
+  const chart = initChart(el);
+  chart.setOption({
+    grid: { left: 40, right: 18, top: 20, bottom: 26 },
+    tooltip: { trigger: "axis", backgroundColor: "#fff", borderColor: "#e8ecf4", textStyle: { color: "#1e293b", fontSize: 12 } },
+    xAxis: { type: "category", data: trend.map(t => t.date), boundaryGap: false, ...AXIS_STYLE, splitLine: { show: false } },
+    yAxis: { type: "value", ...AXIS_STYLE },
+    series: [{
+      name: "调用次数", type: "line", data: trend.map(t => t.calls), smooth: true,
+      symbol: "circle", symbolSize: 7, lineStyle: { width: 3, color: "#2e7cf6" },
+      itemStyle: { color: "#2e7cf6", borderWidth: 2, borderColor: "#fff" },
+      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: "rgba(46,124,246,.30)" }, { offset: 1, color: "rgba(6,182,212,.02)" }]) }
+    }]
+  });
+}
+
+function renderTopApis(list) {
+  const max = Math.max(...list.map(x => x.calls), 1);
+  const colors = ["#2e7cf6", "#06b6d4", "#8b5cf6", "#f59e0b", "#10b981"];
+  document.getElementById("top-apis").innerHTML = list.length ? list.map((x, i) =>
+    '<div class="top-api-item">' +
+      '<span class="rank" style="background:' + colors[i] + '22;color:' + colors[i] + ';width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">' + (i + 1) + "</span>" +
+      '<div style="flex:1;min-width:0"><b style="display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(x.name) + "</b>" +
+        '<div class="progress" style="margin-top:6px"><i style="width:' + Math.round(x.calls / max * 100) + '%;background:linear-gradient(90deg,' + colors[i] + ',' + colors[i] + '99)"></i></div></div>' +
+      '<span style="font-size:12.5px;font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums">' + fmtFull(x.calls) + "</span>" +
+    "</div>").join("")
+    : '<div class="empty">' + ICONS.empty + "<p>还没有调用记录，去接口市场试试吧</p></div>";
+}
+
+/* ==================== 接口市场 ==================== */
+const mkState = { cateId: 0, kw: "", sort: "hot" };
+
+function bindMarket() {
+  document.getElementById("mk-kw").addEventListener("input", debounce(e => {
+    mkState.kw = e.target.value.trim();
+    loadMarket();
+  }));
+  document.getElementById("mk-sort").addEventListener("change", e => {
+    mkState.sort = e.target.value;
+    loadMarket();
+  });
+  document.getElementById("mk-grid").addEventListener("click", e => {
+    const card = e.target.closest("[data-apid]");
+    if (card) openApiDrawer(Number(card.dataset.apid));
+  });
+}
+
+async function loadMarket() {
+  const d = await api(`/api/market/apis?keyword=${encodeURIComponent(mkState.kw)}&category_id=${mkState.cateId}&sort=${mkState.sort}`, { silent: true });
+
+  const cateD = await api("/api/market/categories", { silent: true });
+  document.getElementById("mk-cates").innerHTML =
+    '<span class="chip' + (mkState.cateId === 0 ? " active" : "") + '" data-cid="0">全部接口</span>' +
+    cateD.items.filter(c => c.api_count > 0).map(c =>
+      '<span class="chip' + (mkState.cateId === c.id ? " active" : "") + '" data-cid="' + c.id + '">' + esc(c.name) + " · " + c.api_count + "</span>").join("");
+  document.querySelectorAll("#mk-cates .chip").forEach(ch =>
+    ch.addEventListener("click", () => {
+      mkState.cateId = Number(ch.dataset.cid);
+      loadMarket();
+    }));
+
+  document.getElementById("mk-count").textContent = "共 " + d.items.length + " 个开放接口";
+  document.getElementById("mk-grid").innerHTML = d.items.length ? d.items.map(a =>
+    '<div class="api-card" data-apid="' + a.id + '">' +
+      '<span class="corner">查看详情 →</span>' +
+      '<div class="head">' + methodBadge(a.method) +
+        (a.icon ? '<span style="font-size:18px;margin:0 1px">' + esc(a.icon) + "</span>" : "") +
+        "<b>" + esc(a.name) + "</b></div>" +
+      '<div class="path">' + esc(a.path) + "</div>" +
+      '<div class="desc">' + esc(a.description || "暂无描述") + "</div>" +
+      '<div class="foot">' +
+        '<span class="tag blue"><i class="dot"></i>' + esc(a.category_name) + "</span>" +
+        apiTypeTag(a.api_type) +
+        authTypeTag(a.auth_type) +
+        (a.cost ? '<span class="tag amber" title="每次成功调用消耗">' + a.cost + " 分/次</span>" : "") +
+        (a.status === "maintaining" ? '<span class="tag amber"><i class="dot pulse"></i>维护中</span>' : "") +
+        '<span class="calls">已调用 <b>' + fmtFull(a.call_count) + "</b> 次</span>" +
+      "</div>" +
+    "</div>").join("")
+    : '<div class="card" style="grid-column:1/-1"><div class="empty">' + ICONS.empty + "<p>没有找到匹配的接口，换个关键词试试</p></div></div>";
+}
+
+/* ---- 接口详情抽屉：文档 + 在线测试 ---- */
+let curApi = null, drawerTab = "doc";
+
+async function openApiDrawer(apiId) {
+  const d = await api("/api/market/apis/" + apiId, { silent: true });
+  curApi = d.item;
+  drawerTab = "doc";
+  renderDrawer();
+  document.getElementById("drawer-mask").classList.add("open");
+  document.getElementById("drawer").classList.add("open");
+}
+
+function closeDrawer() {
+  document.getElementById("drawer-mask").classList.remove("open");
+  document.getElementById("drawer").classList.remove("open");
+}
+document.getElementById("drawer-mask").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
+function renderDrawer() {
+  const a = curApi;
+  const fullUrl = location.origin + a.path;
+  document.getElementById("drawer-head").innerHTML =
+    '<div class="flex">' + methodBadge(a.method) +
+      (a.icon ? '<span style="font-size:22px">' + esc(a.icon) + "</span>" : "") +
+      '<b style="font-size:17px">' + esc(a.name) + "</b>" + apiStatusTag(a.status) + authTypeTag(a.auth_type) + "</div>" +
+    '<div class="mono" style="font-family:Consolas,monospace;font-size:12.5px;color:var(--text-2);background:#f7fbff;border:1px solid #e9f2fc;border-radius:9px;padding:8px 12px;margin-top:12px;display:flex;align-items:center;gap:8px">' +
+      '<span style="color:var(--text-3);font-size:11px">URL</span>' + esc(fullUrl) +
+      '<button class="mini-btn" style="margin-left:auto" id="btn-copy-path">复制</button></div>' +
+    '<div style="margin-top:14px" class="tabs">' +
+      '<button data-tab="doc" class="' + (drawerTab === "doc" ? "active" : "") + '">📖 接口文档</button>' +
+      '<button data-tab="test" class="' + (drawerTab === "test" ? "active" : "") + '">🧪 在线测试</button>' +
+    "</div>";
+
+  const body = document.getElementById("drawer-body");
+  if (drawerTab === "doc") {
+    const authBox = a.auth_type === "open"
+      ? '<div style="margin-top:12px;background:#ecfdf5;border:1px solid #c9f3e1;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#047857;line-height:1.9">🌐 该接口<b>免登录开放</b>：任何人可直接调用，无需注册与密钥。' +
+        (a.method === "GET" ? '<a href="' + esc(fullUrl) + '" target="_blank" style="font-weight:600;margin-left:4px">在浏览器中直接调用 ↗</a>' : "") + "</div>"
+      : '<div style="margin-top:12px;background:#f5f3ff;border:1px solid #e6defc;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#6d28d9;line-height:1.9">🔐 该接口<b>需要登录后调用</b>：请求头需携带你的专属 token（即「我的密钥」中的密钥）&nbsp;<span class="kbd">Authorization: Bearer sk-****</span></div>';
+    const extBox = a.api_type === "external"
+      ? '<div style="margin-top:10px;background:#eff6ff;border:1px solid #d4e6fd;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#1d4ed8;line-height:1.9">↗ 外部接口：调用由网关<b>实时转发</b>至第三方服务 ' + esc(a.upstream_url || "") + '，响应为上游原始返回；上游不可达时网关返回 502。</div>'
+      : "";
+    body.innerHTML =
+      '<div class="doc-sec">' +
+        '<b class="t">接口说明</b>' +
+        '<div class="card" style="box-shadow:none;padding:14px 16px;font-size:13px;color:var(--text-2);line-height:1.8">' + esc(a.description || "暂无描述") + "</div>" +
+        '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
+          '<span class="tag blue"><i class="dot"></i>' + esc(a.category_name) + "</span>" +
+          apiTypeTag(a.api_type) +
+          '<span class="tag purple">' + esc(a.version) + "</span>" +
+          '<span class="tag gray">负责人：' + esc(a.owner || "-") + "</span>" +
+          '<span class="tag gray">累计调用 ' + fmtFull(a.call_count) + " 次</span>" +
+          (a.rate_limit ? '<span class="tag amber"><i class="dot"></i>限速 ' + a.rate_limit + " 次/分钟</span>" : '<span class="tag gray">不限速</span>') +
+          (a.cost ? '<span class="tag amber"><i class="dot"></i>' + a.cost + " 积分/次</span>" : '<span class="tag gray">免费</span>') +
+        "</div>" +
+        authBox +
+        extBox +
+        renderParamTable(a.params) +
+        '<b class="t">' + ({ builtin: "真实响应示例", plugin: "插件返回示例", external: "上游响应示例（转发后）", custom: "Mock 响应示例" }[a.api_type] || "响应示例") + "</b>" +
+        '<div class="json-view">' + highlightJSON(a.mock_response || {}) + "</div>" +
+        '<b class="t">调用方式</b>' +
+        '<div class="json-view">' + esc(
+          "curl -X " + a.method + " \"" + fullUrl +
+          (a.method === "GET" && a.params.length ? "?" + a.params.filter(p => p.position === "query").map(p => p.name + "=" + (p.required ? "<" + p.name + ">" : p.name)).join("&") : "") + "\" \\\n" +
+          (a.auth_type === "login" ? '  -H "Authorization: Bearer sk-****" \\\n' : "") +
+          (a.method === "GET"
+            ? '  # 免登录接口无需任何凭证'
+            : '  -H "Content-Type: application/json" \\\n  -d \'{"参数": "值"}\'')) + "</div>" +
+      "</div>";
+  } else {
+    body.innerHTML = renderTestPanel(a);
+    bindTestPanel(a);
+  }
+
+  document.querySelectorAll("#drawer-head [data-tab]").forEach(b =>
+    b.addEventListener("click", () => { drawerTab = b.dataset.tab; renderDrawer(); }));
+  const cp = document.getElementById("btn-copy-path");
+  if (cp) cp.addEventListener("click", () => copyText(fullUrl, cp, "已复制调用地址"));
+  // 文档区代码块加复制按钮
+  body.querySelectorAll(".json-view, pre.code-block").forEach(withCopyBlock);
+}
+
+function renderParamTable(params) {
+  if (!params || !params.length) return '<b class="t">请求参数</b><div class="card" style="box-shadow:none;padding:16px;text-align:center;color:var(--text-3);font-size:12.5px">该接口无需任何参数</div>';
+  return '<b class="t">请求参数（' + params.length + ' 个）</b>' +
+    '<div class="card" style="box-shadow:none;overflow:hidden"><div class="table-wrap">' +
+    '<table class="table" style="font-size:12.5px">' +
+      "<thead><tr><th>参数名</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>" +
+      params.map(p =>
+        "<tr>" +
+          '<td class="mono" style="font-family:Consolas,monospace;font-weight:600">' + esc(p.name) + "</td>" +
+          '<td><span class="tag gray">' + esc(p.position) + "</span></td>" +
+          '<td class="mono" style="font-family:Consolas,monospace;color:var(--text-3)">' + esc(p.type) + "</td>" +
+          "<td>" + (p.required ? '<span class="tag red">必填</span>' : '<span class="tag gray">可选</span>') + "</td>" +
+          '<td style="color:var(--text-2)">' + esc(p.description || "-") + "</td>" +
+        "</tr>").join("") +
+    "</tbody></table></div></div>";
+}
+
+function renderTestPanel(a) {
+  const params = a.params || [];
+  const keyBar = a.auth_type === "login"
+    ? '<div class="test-param"><div class="lab">🔑 调用密钥（专属 token）<span class="req">*</span>' +
+      '<span style="color:var(--text-3);font-weight:400;margin-left:auto;font-size:11.5px">需登录接口使用所选密钥完成鉴权</span></div>' +
+      '<select class="select" id="test-key-sel"><option value="">加载我的密钥中…</option></select></div>'
+    : '<div style="background:#ecfdf5;border:1px solid #c9f3e1;border-radius:11px;padding:9px 13px;font-size:12.5px;color:#047857;margin-bottom:14px">🌐 免登录接口：将直接向网关发起真实请求，无需任何凭证。</div>';
+  const inputs = params.map(p => {
+    const isLong = p.type === "object" || p.type === "array";
+    const req = p.required ? '<span class="req">*</span>' : "";
+    const ph = isLong ? '{"key": "value"}' : (p.description || "请输入 " + p.name);
+    return '<div class="test-param">' +
+      '<div class="lab">' + esc(p.name) + req +
+        '<span class="pos">' + esc(p.position) + "</span>" +
+        '<span class="pos">' + esc(p.type) + "</span>" +
+        '<span style="color:var(--text-3);font-weight:400;margin-left:auto;font-size:11.5px">' + esc(p.description || "") + "</span></div>" +
+      (isLong
+        ? '<textarea class="input" data-tp="' + esc(p.name) + '" rows="3" spellcheck="false" style="font-family:Consolas,monospace;font-size:12.5px" placeholder=\'' + esc(ph) + "'></textarea>"
+        : '<input class="input" data-tp="' + esc(p.name) + '" placeholder="' + esc(ph) + '">') +
+    "</div>";
+  }).join("");
+  return '<div class="flex" style="justify-content:space-between;margin-bottom:14px">' +
+      '<b style="font-size:13.5px">向真实网关发起调用</b>' +
+      '<span class="muted">带 <span style="color:var(--danger)">*</span> 为必填</span></div>' +
+    keyBar +
+    (params.length ? '<div class="card" style="box-shadow:none;padding:16px;background:#f8fbff">' + inputs + "</div>"
+      : '<div class="card" style="box-shadow:none;padding:14px;text-align:center;color:var(--text-3);font-size:12.5px;background:#f8fbff">该接口无需参数，可直接发送</div>') +
+    '<button class="btn btn-primary btn-block" id="btn-send" style="margin-top:16px;height:42px;font-size:14px">⚡ 发送真实请求</button>' +
+    '<div id="test-result" style="margin-top:16px"></div>';
+}
+
+async function bindTestPanel(a) {
+  let myKeys = [];
+  if (a.auth_type === "login") {
+    try {
+      const kd = await api("/api/user/keys", { silent: true });
+      myKeys = kd.items.filter(k => k.status === 1);
+    } catch (e) { /* ignore */ }
+    const sel = document.getElementById("test-key-sel");
+    if (sel) {
+      if (myKeys.length) {
+        sel.innerHTML = myKeys.map(k =>
+          '<option value="' + esc(k.key) + '">' + esc(k.name) + " · " + maskKey(k.key) + "</option>").join("");
+      } else {
+        sel.innerHTML = '<option value="">暂无启用中的密钥</option>';
+        sel.disabled = true;
+        const note = document.createElement("div");
+        note.style.cssText = "margin-top:10px;background:#fffbeb;border:1px solid #fdeeb8;border-radius:11px;padding:10px 13px;font-size:12.5px;color:#92400e";
+        note.innerHTML = '调用该接口需要专属 token，请先到 <a data-go-keys style="font-weight:600;cursor:pointer">我的密钥 → 创建密钥</a>';
+        sel.parentElement.appendChild(note);
+        note.querySelector("[data-go-keys]").addEventListener("click", () => { closeDrawer(); switchView("keys"); });
+      }
+    }
+  }
+
+  document.getElementById("btn-send").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-send");
+    const key = a.auth_type === "login" ? (document.getElementById("test-key-sel") || {}).value : "";
+    if (a.auth_type === "login" && !key) { toast("请先创建并选择一个启用中的密钥", "warn"); return; }
+
+    const pathParams = {}, qs = {}, bodyObj = {};
+    document.querySelectorAll("#drawer-body [data-tp]").forEach(el => {
+      const v = el.value.trim();
+      if (!v) return;
+      const p = (a.params || []).find(x => x.name === el.dataset.tp);
+      const pos = p ? p.position : "query";
+      if (pos === "path") pathParams[el.dataset.tp] = v;
+      else if (pos === "query") qs[el.dataset.tp] = v;
+      else bodyObj[el.dataset.tp] = v;
+    });
+    let url = a.path.replace(/\{(\w+)\}/g, (m, k) => pathParams[k] != null ? encodeURIComponent(pathParams[k]) : m);
+    const qstr = new URLSearchParams(qs).toString();
+    if (qstr) url += "?" + qstr;
+
+    const headers = {};
+    if (a.auth_type === "login") headers["Authorization"] = "Bearer " + key;
+    if (a.method !== "GET") headers["Content-Type"] = "application/json";
+
+    btn.disabled = true; btn.innerHTML = "⏳ 请求中…";
+    const t0 = performance.now();
+    try {
+      const resp = await fetch(url, {
+        method: a.method, headers,
+        body: a.method !== "GET" ? JSON.stringify(bodyObj) : undefined
+      });
+      const latency = Math.round(performance.now() - t0);
+      let bodyJson;
+      try { bodyJson = await resp.json(); } catch (e) { bodyJson = { raw: "（非 JSON 响应）" }; }
+      const okFlag = resp.status === 200;
+      document.getElementById("test-result").innerHTML =
+        '<div class="resp-meta">' +
+          codePill(resp.status) +
+          '<span class="tag ' + (okFlag ? "green" : resp.status >= 500 ? "red" : "amber") + '"><i class="dot"></i>' + (okFlag ? "调用成功" : resp.status === 401 ? "鉴权失败" : "调用未通过") + "</span>" +
+          '<span class="tag gray">耗时 ' + latency + " ms</span>" +
+          '<span class="tag cyan">网关真实调用</span>' +
+          '<span class="muted" style="margin-left:auto">' + esc(a.method) + " " + esc(url) + "</span></div>" +
+        '<div class="json-view">' + highlightJSON(bodyJson) + "</div>";
+      refreshCreditsBadge();
+    } catch (e) {
+      document.getElementById("test-result").innerHTML =
+        '<div class="resp-meta"><span class="tag red"><i class="dot"></i>网络异常</span></div>' +
+        '<div class="json-view">' + esc(e.message) + "</div>";
+    } finally {
+      btn.disabled = false; btn.innerHTML = "⚡ 发送真实请求";
+    }
+  });
+}
+
+/* ==================== 我的密钥 ==================== */
+function bindKeys() {
+  document.getElementById("btn-key-new").addEventListener("click", keyModal);
+}
+
+async function loadKeys() {
+  const d = await api("/api/user/keys", { silent: true });
+  window._onlineApis = d.apis || [];
+  const wrap = document.getElementById("key-list");
+  if (!d.items.length) {
+    wrap.innerHTML = '<div class="card"><div class="empty">' + ICONS.empty +
+      "<p>还没有 API 密钥，点击右上角「创建密钥」开始使用</p></div></div>";
+    return;
+  }
+  wrap.innerHTML = d.items.map(k => {
+    const enabled = k.status === 1;
+    const allowCount = k.allowed_apis ? k.allowed_apis.split(",").filter(x => x.trim()).length : 0;
+    return '<div class="card key-card">' +
+      '<div class="kicon" style="background:' + (enabled ? "#eef2ff" : "#f1f5f9") + '">' + (enabled ? "🔑" : "🔒") + "</div>" +
+      '<div class="kmain">' +
+        '<div class="krow"><b>' + esc(k.name) + "</b>" +
+          (enabled ? '<span class="tag green"><i class="dot pulse"></i>启用中</span>' : '<span class="tag gray"><i class="dot"></i>已停用</span>') +
+          (allowCount
+            ? '<span class="tag purple" title="该密钥仅可调用白名单内的需密钥接口">白名单 ' + allowCount + " 个接口</span>"
+            : '<span class="tag gray" title="可调用全部需密钥接口">不限接口</span>') + "</div>" +
+        '<div class="kval"><span class="val" data-key="' + esc(k.key) + '">' + maskKey(k.key) + "</span>" +
+          '<button class="mini-btn" data-eye>👁 显示</button>' +
+          '<button class="mini-btn" data-copy>📋 复制</button></div>' +
+        '<div class="kmeta">创建于 ' + k.created_at.slice(0, 10) + " · " + (k.last_used ? "最近使用 " + k.last_used.slice(0, 16) : "从未使用") + "</div>" +
+      "</div>" +
+      '<div class="kops">' +
+        '<button class="mini-btn" data-krename=\'' + esc(JSON.stringify({ id: k.id, name: k.name })) + "\' title=" + '"' + "重命名\">✏️ 重命名</button>" +
+        '<button class="mini-btn" data-kallow=\'' + esc(JSON.stringify({ id: k.id, name: k.name, allowed: k.allowed_apis || "" })) + "' title=\"配置可调用的接口白名单\">🛡️ 白名单</button>" +
+        '<label class="switch" title="' + (enabled ? "停用后网关将拒绝该密钥" : "重新启用该密钥") + '">' +
+          '<input type="checkbox" data-kswitch=\'' + esc(JSON.stringify({ id: k.id, name: k.name })) + "'" + (enabled ? " checked" : "") + '><i></i></label>' +
+        '<button class="mini-btn danger" data-kdel=\'' + esc(JSON.stringify({ id: k.id, name: k.name })) + "\'>删除</button></div>" +
+    "</div>";
+  }).join("");
+
+  wrap.querySelectorAll("[data-eye]").forEach(b => b.addEventListener("click", () => {
+    const val = b.parentElement.querySelector(".val");
+    const shown = val.dataset.shown === "1";
+    val.textContent = shown ? maskKey(val.dataset.key) : val.dataset.key;
+    val.dataset.shown = shown ? "0" : "1";
+    b.textContent = shown ? "👁 显示" : "🙈 隐藏";
+  }));
+  wrap.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
+    copyText(b.parentElement.querySelector(".val").dataset.key, b);
+  }));
+  wrap.querySelectorAll("[data-krename]").forEach(b => b.addEventListener("click", () => {
+    const k = JSON.parse(b.dataset.krename);
+    keyRenameModal(k, loadKeys);
+  }));
+  wrap.querySelectorAll("[data-kallow]").forEach(b => b.addEventListener("click", () => {
+    const k = JSON.parse(b.dataset.kallow);
+    keyWhitelistModal(k, loadKeys);
+  }));
+  wrap.querySelectorAll("[data-kdel]").forEach(b => b.addEventListener("click", async () => {
+    const k = JSON.parse(b.dataset.kdel);
+    const ok = await confirmDialog("删除密钥", "确定删除密钥 <b>" + esc(k.name) + "</b> 吗？<br><span style='color:var(--text-3);font-size:12px'>使用该密钥的线上调用将立即失败。</span>");
+    if (!ok) return;
+    await api("/api/user/keys/" + k.id, { method: "DELETE" });
+    toast("密钥已删除");
+    loadKeys();
+  }));
+  wrap.querySelectorAll("[data-kswitch]").forEach(swEl => swEl.addEventListener("change", async () => {
+    const k = JSON.parse(swEl.dataset.kswitch);
+    try {
+      await api("/api/user/keys/" + k.id, { method: "PUT", body: { status: swEl.checked ? 1 : 0 } });
+      toast("密钥「" + k.name + "」已" + (swEl.checked ? "启用" : "停用，网关将拒绝该密钥的调用"), swEl.checked ? "success" : "warn");
+      loadKeys();
+    } catch (err) { swEl.checked = !swEl.checked; }
+  }));
+}
+
+function maskKey(key) {
+  return key.slice(0, 8) + "•".repeat(18) + key.slice(-4);
+}
+
+function passwordModal() {
+  const mask = openModal(
+    '<div class="modal-head"><b>修改登录密码</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="form-item"><label>当前密码<span class="req">*</span></label><input class="input" id="pw-old" type="password" placeholder="请输入当前密码"></div>' +
+      '<div class="form-item"><label>新密码<span class="req">*</span></label><input class="input" id="pw-new" type="password" placeholder="至少 8 位，含字母与数字"><div class="tip">修改成功后请牢记新密码，下次登录使用</div></div>' +
+      '<div class="form-item"><label>确认新密码<span class="req">*</span></label><input class="input" id="pw-new2" type="password" placeholder="再次输入新密码"></div>' +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="pw-save">确认修改</button>' +
+    "</div>", { width: 440 });
+  mask.querySelector("#pw-save").addEventListener("click", async () => {
+    const oldPwd = mask.querySelector("#pw-old").value;
+    const newPwd = mask.querySelector("#pw-new").value;
+    const newPwd2 = mask.querySelector("#pw-new2").value;
+    if (!oldPwd || !newPwd) { toast("请填写完整", "warn"); return; }
+    if (!checkPwdStrength(newPwd)) return;
+    if (newPwd !== newPwd2) { toast("两次输入的新密码不一致", "warn"); return; }
+    try {
+      await api("/api/user/password", { method: "PUT", body: { old_password: oldPwd, new_password: newPwd } });
+      toast("密码修改成功，下次登录请使用新密码", "success", 3000);
+      mask.close();
+    } catch (e) {}
+  });
+}
+
+/* ==================== 我的调用记录 ==================== */
+const ulogState = { page: 1, pageSize: 12 };
+
+function bindUserLogs() {
+  ["ulog-result", "ulog-status", "ulog-from", "ulog-to"].forEach(id =>
+    document.getElementById(id).addEventListener("change", () => { ulogState.page = 1; loadUserLogs(); }));
+  document.getElementById("ulog-clear").addEventListener("click", () => {
+    ["ulog-result", "ulog-status", "ulog-from", "ulog-to"].forEach(id =>
+      document.getElementById(id).value = "");
+    ulogState.page = 1;
+    loadUserLogs();
+  });
+  document.getElementById("btn-ulog-refresh").addEventListener("click", () => {
+    loadUserLogs();
+    toast("已刷新", "success", 1200);
+  });
+  document.getElementById("ulog-tbody").addEventListener("click", e => {
+    const tr = e.target.closest("tr[data-log]");
+    if (tr) userLogDetail(JSON.parse(tr.dataset.log));
+  });
+}
+
+function userLogDetail(l) {
+  const rows = [
+    ["接口名称", esc(l.api_name) + " " + methodBadge(l.method)],
+    ["调用时间", esc(l.created_at)],
+    ["来源 IP", '<span style="font-family:Consolas,monospace">' + esc(l.ip) + "</span>"],
+    ["状态码", codePill(l.status_code) + " " + (l.success ? '<span class="tag green"><i class="dot"></i>成功</span>' : '<span class="tag red"><i class="dot"></i>失败</span>')],
+    ["总耗时", latencyTag(l.latency)],
+    ["日志 ID", "#" + l.id]
+  ];
+  openModal(
+    '<div class="modal-head"><b>调用详情</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="card" style="box-shadow:none;overflow:hidden"><div class="table-wrap"><table class="table" style="font-size:13px">' +
+        "<tbody>" + rows.map(r => '<tr><td style="width:96px;color:var(--text-3);font-size:12px">' + r[0] + '</td><td>' + r[1] + "</td></tr>").join("") + "</tbody>" +
+      "</table></div></div>" +
+      (l.status_code === 429
+        ? '<div style="margin-top:12px;background:#fffbeb;border:1px solid #fdeeb8;border-radius:11px;padding:10px 13px;font-size:12.5px;color:#92400e;line-height:1.8">⚠️ 该调用被限流拦截：接口限速触发，请降低频率后重试。</div>'
+        : "") +
+    "</div>" +
+    '<div class="modal-foot"><button class="btn btn-primary" data-close>关闭</button></div>', { width: 460 });
+}
+
+async function loadUserLogs() {
+  const p = new URLSearchParams();
+  const result = document.getElementById("ulog-result").value;
+  const sc = document.getElementById("ulog-status").value;
+  const from = document.getElementById("ulog-from").value;
+  const to = document.getElementById("ulog-to").value;
+  if (result) p.set("result", result);
+  if (sc) p.set("status_code", sc);
+  if (from) p.set("date_from", from);
+  if (to) p.set("date_to", to);
+
+  const d = await api(`/api/user/logs?${p}&page=${ulogState.page}&page_size=${ulogState.pageSize}`, { silent: true });
+  document.getElementById("ulog-count").textContent = "共 " + fmtFull(d.total) + " 条记录";
+  document.getElementById("ulog-tbody").innerHTML = d.items.length ? d.items.map(l =>
+    "<tr data-log='" + esc(JSON.stringify(l)) + "' style='cursor:pointer' title='点击查看详情'>" +
+      '<td class="muted" style="font-family:Consolas,monospace;font-size:12px;white-space:nowrap">' + l.created_at + "</td>" +
+      '<td><div class="cell-main" style="font-size:13px">' + esc(l.api_name) + "</div></td>" +
+      "<td>" + methodBadge(l.method) + "</td>" +
+      '<td style="font-family:Consolas,monospace;font-size:12.5px">' + esc(l.ip) + "</td>" +
+      "<td>" + codePill(l.status_code) + "</td>" +
+      "<td>" + latencyTag(l.latency) + "</td>" +
+      "<td>" + (l.success ? '<span class="tag green"><i class="dot"></i>成功</span>' : '<span class="tag red"><i class="dot"></i>失败</span>') + "</td>" +
+    "</tr>").join("")
+    : '<tr><td colspan="7"><div class="empty">' + ICONS.empty + "<p>还没有符合条件的调用记录</p></div></td></tr>";
+  renderPagination(document.getElementById("ulog-pager"), d.total, ulogState.page, ulogState.pageSize,
+    p2 => { ulogState.page = p2; loadUserLogs(); });
+}
+
+/* ==================== 我的积分 ==================== */
+const credLogState = { page: 1, pageSize: 12 };
+
+function bindCreditsView() {
+  document.getElementById("btn-checkin").addEventListener("click", doCheckin);
+  document.getElementById("top-credits").addEventListener("click", () => switchView("credits"));
+}
+
+async function refreshCreditsBadge() {
+  try {
+    const d = await api("/api/user/credits", { silent: true });
+    document.getElementById("top-credits-num").textContent = fmtFull(d.credits);
+    return d;
+  } catch (e) { return null; }
+}
+
+async function loadCreditsView() {
+  const d = await refreshCreditsBadge();
+  if (!d) return;
+  document.getElementById("w-cred-balance").textContent = fmtFull(d.credits);
+  document.getElementById("w-cred-reward").textContent = d.signin_min === d.signin_max ? d.signin_min : d.signin_min + "~" + d.signin_max;
+  const btn = document.getElementById("btn-checkin");
+  if (d.checked_in_today) {
+    btn.disabled = true;
+    btn.textContent = "✅ 今日已签到";
+    btn.style.opacity = ".75";
+  } else {
+    btn.disabled = false;
+    btn.textContent = "📅 每日签到 +" + (d.signin_min === d.signin_max ? d.signin_min : d.signin_min + "~" + d.signin_max) + " 积分";
+    btn.style.opacity = "1";
+  }
+  loadCreditLogs();
+}
+
+async function doCheckin() {
+  // 防爬流程：先取一次性挑战 -> 用户完成滑块 -> HMAC 签名随请求提交
+  let challenge = null;
+  try {
+    const c = await api("/api/user/checkin/challenge", { silent: true });
+    challenge = c.challenge;
+  } catch (e) { /* 无挑战（模式可能为 off），继续无签名签到 */ }
+  checkinSliderModal(challenge);
+}
+
+/** 滑块验证弹窗：拖到底触发签到；轨迹全程记录用于后端行为校验 */
+function checkinSliderModal(challenge) {
+  const mask = openModal(
+    '<div class="modal-head"><b>安全验证</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body" style="text-align:center">' +
+      '<p class="muted" style="font-size:12.5px;margin-bottom:14px">拖动滑块到最右侧完成签到验证（防机器人刷分）</p>' +
+      '<div id="sl-track" style="position:relative;height:44px;background:#eef3fb;border-radius:12px;user-select:none;overflow:hidden">' +
+        '<div id="sl-fill" style="position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#b7e0ff,#d6f3ff)"></div>' +
+        '<span id="sl-hint" style="position:absolute;inset:0;display:grid;place-items:center;font-size:12.5px;color:var(--text-3)">按住滑块，拖到最右侧 →</span>' +
+        '<div id="sl-knob" style="position:absolute;left:2px;top:2px;width:52px;height:40px;border-radius:10px;background:#fff;border:1px solid var(--line-strong);display:grid;place-items:center;cursor:grab;box-shadow:0 2px 6px rgba(15,23,42,.12);font-size:15px">»</div>' +
+      "</div>" +
+      '<div id="sl-status" style="margin-top:12px;font-size:12.5px;min-height:20px"></div>' +
+    "</div>" +
+    '<div class="modal-foot"><button class="btn btn-ghost" data-close>取消</button></div>', { width: 420 });
+
+  const track = mask.querySelector("#sl-track");
+  const knob = mask.querySelector("#sl-knob");
+  const fill = mask.querySelector("#sl-fill");
+  const hint = mask.querySelector("#sl-hint");
+  const status = mask.querySelector("#sl-status");
+  const max = track.clientWidth - 56;   // 本次会话的满格位移，随轨迹上报给后端做比例校验
+  const trail = [];
+  let dragging = false, startX = 0, t0 = 0;
+
+  const move = x => {
+    const dx = Math.max(0, Math.min(x - startX, max));
+    knob.style.left = (2 + dx) + "px";
+    fill.style.width = (dx + 28) + "px";
+    return dx;
+  };
+
+  const onDown = e => {
+    if (dragging) return;
+    dragging = true; startX = (e.touches ? e.touches[0].clientX : e.clientX) - (parseFloat(knob.style.left) || 2);
+    t0 = performance.now(); trail.length = 0;
+    knob.style.cursor = "grabbing";
+  };
+  const onMove = e => {
+    if (!dragging) return;
+    e.preventDefault();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const dx = move(cx);
+    trail.push({ x: Math.round(dx), t: Math.round(performance.now() - t0) });
+    if (dx >= max - 2) {
+      dragging = false;
+      trail.push({ x: max, t: Math.round(performance.now() - t0) });
+      hint.style.opacity = "0";
+      knob.style.cursor = "default";
+      submitCheckin(challenge, trail, max, mask, status);
+    }
+  };
+  const onUp = () => {
+    if (dragging) { dragging = false; knob.style.cursor = "grab"; }
+  };
+  knob.addEventListener("mousedown", onDown);
+  knob.addEventListener("touchstart", onDown, { passive: true });
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("touchmove", onMove, { passive: false });
+  window.addEventListener("mouseup", onUp);
+  window.addEventListener("touchend", onUp);
+}
+
+async function submitCheckin(challenge, trail, sliderMax, mask, status) {
+  status.innerHTML = '<span class="muted">⏳ 正在验证并签到…</span>';
+  let body = { trail, slider_max: Math.round(sliderMax) };
+  if (challenge) {
+    // 签名 = SHA-256(challenge|token)：token 仅登录态持有，爬虫直连拿不到 challenge 也无法重放
+    const enc = new TextEncoder();
+    const data = new Uint8Array([...enc.encode(challenge + "|" + Auth.token)]);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    const sign = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+    body.challenge = challenge;
+    body.sign = sign;
+  }
+  try {
+    const r = await api("/api/user/checkin", { method: "POST", body });
+    status.innerHTML = '<span class="tag green"><i class="dot"></i>签到成功 +' + r.reward + " 积分</span>";
+    setTimeout(() => { mask.close(); loadCreditsView(); }, 900);
+  } catch (e) {
+    status.innerHTML = '<span class="tag red"><i class="dot"></i>' + esc(e.message) + "</span>";
+  }
+}
+
+const CRED_REASON_TAG = {
+  checkin: ["签到", "amber"], consume: ["调用", "red"], admin: ["调整", "blue"], gift: ["赠送", "green"]
+};
+
+async function loadCreditLogs() {
+  const d = await api(`/api/user/credits/logs?page=${credLogState.page}&page_size=${credLogState.pageSize}`, { silent: true });
+  document.getElementById("cred-log-tbody").innerHTML = d.items.length ? d.items.map(l => {
+    const tag = CRED_REASON_TAG[l.ref_type] || ["其他", "gray"];
+    return "<tr>" +
+      '<td class="muted" style="white-space:nowrap;font-size:12px">' + l.created_at + "</td>" +
+      '<td><b style="color:' + (l.change > 0 ? "var(--success)" : "var(--danger)") + ';font-size:14px;font-variant-numeric:tabular-nums">' +
+        (l.change > 0 ? "+" : "") + l.change + "</b></td>" +
+      '<td class="num">' + l.balance + "</td>" +
+      '<td><span class="tag ' + tag[1] + '">' + tag[0] + '</span> <span class="muted" style="font-size:12px">' + esc(l.reason || "") + "</span></td>" +
+    "</tr>";
+  }).join("") : '<tr><td colspan="4"><div class="empty">' + ICONS.empty + "<p>还没有积分记录，去签到或调用接口吧</p></div></td></tr>";
+  renderPagination(document.getElementById("cred-log-pager"), d.total, credLogState.page, credLogState.pageSize,
+    p => { credLogState.page = p; loadCreditLogs(); });
+}
+
+/* ==================== 通知与维护模式 ==================== */
+const LEVEL_META = {
+  info:     { icon: "📢", label: "通知" },
+  warn:     { icon: "⚠️", label: "注意" },
+  critical: { icon: "🚨", label: "重要" }
+};
+
+function bindNoticesAndMaintenance() {
+  document.getElementById("notice-bar").addEventListener("click", noticeCenterModal);
+  document.getElementById("btn-maint-logout").addEventListener("click", async () => {
+    try { await api("/api/auth/logout", { method: "POST" }); } catch (e) {}
+    Auth.clear();
+    location.replace("/login");
+  });
+  checkMaintenance();
+  loadNotices();
+  // 维护状态每 30 秒轮询（恢复无需手动刷新）；通知跟随刷新
+  setInterval(() => { checkMaintenance(); loadNotices(true); }, 30000);
+}
+
+async function checkMaintenance() {
+  try {
+    // 管理员有专用端点；普通用户通过任意受保护 API 的 503 判定
+    if (me.role === "admin") {
+      const d = await api("/api/admin/maintenance", { silent: true });
+      applyMaintenance(d.enabled, d.message);
+      return;
+    }
+    // 普通用户：用一个轻量受保护端点探测（被维护拦截时返回 503）
+    const res = await fetch("/api/user/credits", { headers: { Authorization: "Bearer " + Auth.token } });
+    if (res.status === 503) {
+      let msg = "系统正在维护，请稍后再试。";
+      try { const j = await res.json(); msg = j.detail || j.message || msg; } catch (e) {}
+      applyMaintenance(true, msg);
+    } else {
+      applyMaintenance(false);
+    }
+  } catch (e) { /* 网络异常不切维护态 */ }
+}
+
+function applyMaintenance(on, msg) {
+  const mask = document.getElementById("maint-mask");
+  if (on) {
+    document.getElementById("maint-msg").textContent = msg || "系统正在维护，请稍后再试。";
+    mask.classList.add("open");
+  } else {
+    mask.classList.remove("open");
+  }
+}
+
+let _notices = [], _noticeIdx = 0;
+
+async function loadNotices(silent) {
+  try {
+    const d = await api("/api/notices", { silent: true });
+    _notices = d.items || [];
+    _noticeIdx = 0;
+    renderNoticeBar();
+    if (!silent && _notices.length) renderNoticeBar(); // 有新通知时刷新展示
+  } catch (e) { /* 管理员维护态下 503，忽略 */ }
+}
+
+/** 通知条：多条轮播（8 秒一换），级别最高的样式 */
+function renderNoticeBar() {
+  const bar = document.getElementById("notice-bar");
+  if (!_notices.length) { bar.style.display = "none"; return; }
+  // 轮询到维护开启时隐藏通知条（遮罩优先）
+  if (document.getElementById("maint-mask").classList.contains("open")) { bar.style.display = "none"; return; }
+  bar.style.display = "flex";
+  const n = _notices[_noticeIdx % _notices.length];
+  const meta = LEVEL_META[n.level] || LEVEL_META.info;
+  bar.className = "notice-bar " + n.level;
+  document.getElementById("nb-icon").textContent = meta.icon;
+  document.getElementById("nb-title").textContent = (n.pinned ? "📌 " : "") + n.title;
+  document.getElementById("nb-more").textContent = _notices.length > 1
+    ? "共 " + _notices.length + " 条，" + ((_noticeIdx % _notices.length) + 1) + "/" + _notices.length + " ›"
+    : "查看详情 ›";
+  // 轮播
+  if (_notices.length > 1 && !window._noticeTimer) {
+    window._noticeTimer = setInterval(() => {
+      if (document.getElementById("maint-mask").classList.contains("open")) return;
+      _noticeIdx = (_noticeIdx + 1) % _notices.length;
+      renderNoticeBar();
+    }, 8000);
+  }
+}
+
+/** 通知中心：全部通知的详情弹窗 */
+function noticeCenterModal() {
+  const items = _notices.map(n => {
+    const meta = LEVEL_META[n.level] || LEVEL_META.info;
+    const bg = n.level === "critical" ? "#fef2f2" : n.level === "warn" ? "#fffbeb" : "#eff6ff";
+    return '<div class="notice-item">' +
+      '<span class="nicon" style="background:' + bg + '">' + meta.icon + "</span>" +
+      '<div class="nb" style="flex:1"><b>' + (n.pinned ? "📌 " : "") + esc(n.title) +
+        ' <span class="tag ' + (n.level === "critical" ? "red" : n.level === "warn" ? "amber" : "blue") + '" style="font-size:10.5px">' + meta.label + "</span></b>" +
+      "<p>" + esc(n.content) + "</p>" +
+      '<div class="nt">' + esc(n.created_at || "") + "</div></div>" +
+    "</div>";
+  }).join("");
+  openModal(
+    '<div class="modal-head"><b>📢 平台通知</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' + (items || '<div class="empty">暂无通知</div>') + "</div>" +
+    '<div class="modal-foot"><button class="btn btn-primary" data-close>知道了</button></div>', { width: 520 });
+}
+
+/* ==================== 复制 ==================== */
+function keyRenameModal(k, onDone) {
+  const mask = openModal(
+    '<div class="modal-head"><b>重命名密钥</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="form-item"><label>密钥名称<span class="req">*</span></label>' +
+        '<input class="input" id="kr-name" maxlength="40" value="' + esc(k.name) + '" placeholder="如：生产环境 / 测试环境">' +
+        '<div class="tip">仅修改显示名称，密钥本身不变，线上调用不受影响</div></div>' +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="kr-save">保存</button>' +
+    "</div>", { width: 420 });
+  mask.querySelector("#kr-save").addEventListener("click", async () => {
+    const name = mask.querySelector("#kr-name").value.trim();
+    if (!name) { toast("请填写密钥名称", "warn"); return; }
+    try {
+      await api("/api/user/keys/" + k.id, { method: "PUT", body: { name } });
+      toast("密钥已重命名");
+      mask.close();
+      if (onDone) onDone();
+    } catch (e) { /* toast 已提示 */ }
+  });
+}
+
+function keyWhitelistModal(k, onDone) {
+  const apis = window._onlineApis || [];
+  const selected = new Set((k.allowed || "").split(",").map(x => Number(x.trim())).filter(x => x > 0));
+  const rows = apis.map(a =>
+    '<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;cursor:pointer" class="wl-row">' +
+      '<input type="checkbox" data-wlid="' + a.id + '"' + (selected.has(a.id) ? " checked" : "") +
+        ' style="accent-color:var(--primary);width:15px;height:15px;flex:none">' +
+      '<span style="flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+        esc(a.name) + ' <span class="mono" style="font-family:Consolas,monospace;color:var(--text-3);font-size:11px">' + esc(a.path) + "</span></span>" +
+    "</label>").join("");
+  const mask = openModal(
+    '<div class="modal-head"><b>接口白名单 · ' + esc(k.name) + '</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div style="background:#f5f3ff;border:1px solid #e6defc;border-radius:11px;padding:10px 13px;font-size:12.5px;color:#6d28d9;line-height:1.8;margin-bottom:12px">' +
+        "勾选后该密钥<b>仅可调用</b>选中的需密钥接口；全部取消勾选则不限制（可调用全部需密钥接口）。免登录接口不受白名单影响。</div>" +
+      '<input class="input" id="wl-search" placeholder="搜索接口名称 / 路径" style="margin-bottom:10px">' +
+      '<div class="card" style="box-shadow:none;max-height:320px;overflow-y:auto;background:#fafcff" id="wl-list">' + rows + "</div>" +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="wl-save">保存白名单</button>' +
+    "</div>", { width: 520 });
+  mask.querySelector("#wl-search").addEventListener("input", e => {
+    const kw = e.target.value.trim().toLowerCase();
+    mask.querySelectorAll(".wl-row").forEach(r => {
+      r.style.display = !kw || r.textContent.toLowerCase().includes(kw) ? "" : "none";
+    });
+  });
+  mask.querySelector("#wl-save").addEventListener("click", async () => {
+    const ids = [];
+    mask.querySelectorAll("[data-wlid]:checked").forEach(cb => ids.push(Number(cb.dataset.wlid)));
+    try {
+      await api("/api/user/keys/" + k.id, { method: "PUT", body: { allowed_apis: ids } });
+      toast(ids.length ? "白名单已保存（" + ids.length + " 个接口）" : "白名单已清空（不限制接口）");
+      mask.close();
+      if (onDone) onDone();
+    } catch (e) { /* toast 已提示 */ }
+  });
+}
+
+function keyModal() {
+  const mask = openModal(
+    '<div class="modal-head"><b>创建 API 密钥</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="form-item"><label>密钥名称<span class="req">*</span></label>' +
+        '<input class="input" id="k-name" placeholder="如：生产环境 / 测试环境 / 本地调试">' +
+        '<div class="tip">建议按用途与环境命名，便于区分管理</div></div>' +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="k-save">创建密钥</button>' +
+    "</div>", { width: 440 });
+  mask.querySelector("#k-save").addEventListener("click", async () => {
+    const name = mask.querySelector("#k-name").value.trim();
+    if (!name) { toast("请填写密钥名称", "warn"); return; }
+    try {
+      await api("/api/user/keys", { method: "POST", body: { name } });
+      toast("密钥创建成功");
+      mask.close();
+      loadKeys();
+    } catch (e) {}
+  });
+}
+
+/* 所有声明就绪后再启动页面 */
+if (me) initPage();
+
+/* ---- 移动端抽屉导航 ---- */
+(function () {
+  const btn = document.getElementById("btn-hamburger");
+  const sidebar = document.querySelector(".sidebar");
+  const scrim = document.getElementById("drawer-scrim");
+  if (!btn || !sidebar || !scrim) return;
+  const close = () => { sidebar.classList.remove("open"); document.body.classList.remove("drawer-open"); };
+  btn.addEventListener("click", () => {
+    const open = sidebar.classList.toggle("open");
+    document.body.classList.toggle("drawer-open", open);
+  });
+  scrim.addEventListener("click", close);
+  // 点导航项后自动收起（移动端选择视图后回内容区）
+  sidebar.querySelectorAll(".nav a").forEach(a => a.addEventListener("click", close));
+  window.addEventListener("resize", () => { if (innerWidth > 860) close(); });
+})();
+</script>
+</body>
+</html>

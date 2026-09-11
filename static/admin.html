@@ -1,0 +1,2668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232e7cf6%22/><text x=%2250%22 y=%2272%22 font-size=%2260%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22 font-weight=%22bold%22>A</text></svg>">
+<title>管理控制台 - APIStar 接口管理平台</title>
+<link rel="stylesheet" href="/static/common.css?v=9">
+<style>
+  .api-path { font-family: Consolas, monospace; font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .cat-icon { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-size: 19px; flex: none; }
+  .cat-card { position: relative; }
+  .cat-card .ops { position: absolute; right: 14px; top: 14px; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
+  .cat-card:hover .ops { opacity: 1; }
+  .cat-card .ops button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-size: 13px; color: var(--text-3); }
+  .cat-card .ops button:hover { color: var(--primary); border-color: #c7d2fe; }
+  .cat-card .ops button.del:hover { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
+  .params-table td { padding: 6px 8px !important; }
+  .params-table .input, .params-table .select { height: 32px; font-size: 12.5px; border-radius: 8px; }
+  .param-row-del { width: 30px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--text-3); cursor: pointer; flex: none; }
+  .param-row-del:hover { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
+  .top-api-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
+  .top-api-item .rank { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; flex: none; }
+  .top-api-item .meta { flex: 1; min-width: 0; }
+  .top-api-item .meta b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top-api-item .meta .progress { margin-top: 6px; }
+  .top-api-item .calls { font-size: 12.5px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+  /* ---- 移动端适配 ---- */
+  @media (max-width: 860px) {
+    .top-api-item { flex-wrap: wrap; }
+    /* 接口编辑弹窗：图标网格 14 列太挤，改 10 列 */
+    #m-icon-grid { grid-template-columns: repeat(10, 1fr) !important; }
+    /* 参数定义表格可横向滑 */
+    .params-table { min-width: 520px; }
+    /* 仪表盘三列图区变单列 */
+    .dash-triple { grid-template-columns: 1fr !important; }
+    .tabs { width: 100%; overflow-x: auto; }
+    .tabs button { white-space: nowrap; }
+    /* 运行指标条纵排 */
+    #dash-extras .card-body { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
+    #dash-extras .muted:last-child { margin-left: 0 !important; }
+    /* 欢迎区/工具条头部纵排 */
+    .flex[style*="justify-content:space-between"] { flex-direction: column; align-items: stretch !important; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="drawer-scrim" id="drawer-scrim"></div>
+
+<div class="app-shell">
+  <!-- ============ 侧边栏 ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">A</div>
+      <div><b>APIStar</b><span>ADMIN CONSOLE</span></div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-group">总览</div>
+      <a data-view="dashboard" class="active" id="nav-dashboard"></a>
+      <div class="nav-group">资源管理</div>
+      <a data-view="apis" id="nav-apis"></a>
+      <a data-view="plugins" id="nav-plugins"></a>
+      <a data-view="categories" id="nav-categories"></a>
+      <div class="nav-group">运营</div>
+      <a data-view="users" id="nav-users"></a>
+      <a data-view="keys" id="nav-keys"></a>
+      <a data-view="credits" id="nav-credits"></a>
+      <a data-view="logs" id="nav-logs"></a>
+      <a data-view="audit" id="nav-audit"></a>
+      <a data-view="settings" id="nav-settings"></a>
+      <a data-view="notices" id="nav-notices"></a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="flex" style="gap:10px">
+        <div class="avatar" id="side-avatar">管</div>
+        <div style="line-height:1.3">
+          <b id="side-name" style="color:#e2e8f0;font-size:13px">系统管理员</b><br>
+          <span style="font-size:11px;color:#64748b">超级管理员 · admin</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ 主区域 ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" id="btn-hamburger" aria-label="打开导航"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <div class="crumb" id="crumb">数据概览<small>平台运行情况一屏掌握</small></div>
+      <div class="spacer"></div>
+      <a class="btn btn-ghost btn-sm" href="/console">进入用户端 ↗</a>
+      <div class="user-chip" id="user-chip">
+        <div class="avatar" id="top-avatar">管</div>
+        <div class="info"><b id="top-name">系统管理员</b><span>administrator</span></div>
+        <span style="color:var(--text-3);font-size:11px">▾</span>
+        <div class="dropdown" id="user-menu">
+          <a data-act="console">🎯 用户端控制台</a>
+          <a data-act="password">🔒 修改密码</a>
+          <a data-act="logout" class="danger">⏻ 退出登录</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ======== 视图：数据概览 ======== -->
+      <section class="page-view active" id="view-dashboard">
+          <div class="flex" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="page-title">数据概览</div>
+            <div class="page-sub" id="dash-date"></div>
+          </div>
+          <div class="flex">
+            <div class="tabs" id="dash-range">
+              <button data-days="7">7 天</button>
+              <button data-days="14" class="active">14 天</button>
+              <button data-days="30">30 天</button>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-dash-auto" title="每 10 秒自动刷新仪表盘数据">⟳ 自动刷新：关</button>
+            <button class="btn btn-ghost btn-sm" id="btn-dash-refresh">⟳ 刷新数据</button>
+          </div>
+        </div>
+
+        <div class="grid-stats">
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#e8f2ff,#e0f8ff);color:#2e7cf6">🔌</div>
+            <div class="num" id="st-api">-</div>
+            <div class="label">接口总数 · 在线 <b id="st-api-online" style="color:var(--success)">-</b></div>
+            <div class="deco" style="background:#2e7cf6"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#e3f9ef,#e9fbff);color:#10b981">👥</div>
+            <div class="num" id="st-user">-</div>
+            <div class="label">注册用户 · 活跃 <b id="st-user-active" style="color:var(--success)">-</b></div>
+            <div class="deco" style="background:#10b981"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#fff4dd,#fffbe8);color:#f59e0b">⚡</div>
+            <div class="num" id="st-calls">-</div>
+            <div class="label">今日调用次数</div>
+            <div class="delta flat" id="st-calls-delta">- 0%</div>
+            <div class="deco" style="background:#f59e0b"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#ffe9f3,#fff0f0);color:#ec4899">📈</div>
+            <div class="num" id="st-rate">-<small>%</small></div>
+            <div class="label">近 7 日请求成功率</div>
+            <div class="deco" style="background:#ec4899"></div>
+          </div>
+        </div>
+
+        <div class="grid-2 section-gap">
+          <div class="card">
+            <div class="card-head"><b>调用量趋势</b><span class="hint" id="trend-hint">近 14 天 · 柱状为调用次数，折线为错误数</span></div>
+            <div class="card-body"><div id="chart-trend" style="height:295px"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><b>分类调用分布</b><span class="hint">按累计调用量</span></div>
+            <div class="card-body"><div id="chart-cate" style="height:295px"></div></div>
+          </div>
+        </div>
+
+        <div class="dash-triple section-gap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div class="card">
+            <div class="card-head"><b>接口类型分布</b><span class="hint">按接口数量</span></div>
+            <div class="card-body"><div id="chart-type" style="height:230px"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><b>耗时分布</b><span class="hint">窗口内请求量</span></div>
+            <div class="card-body"><div id="chart-latency" style="height:230px"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><b>状态码分布</b><span class="hint">含 429 限流拦截</span></div>
+            <div class="card-body"><div id="chart-status" style="height:230px"></div></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><b>热门接口 TOP5</b><span class="hint">按累计调用量</span></div>
+            <div class="card-body" id="top-apis"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><b>慢调用 TOP5</b><span class="hint">按窗口内平均耗时</span></div>
+            <div class="card-body" id="slow-apis"></div>
+          </div>
+        </div>
+
+        <div class="grid-2 section-gap">
+          <div class="card">
+            <div class="card-head"><b>最近调用记录</b><span class="right"><a class="muted" data-view-link="logs">查看全部 →</a></span></div>
+            <div class="card-body" style="padding-top:8px">
+              <div class="table-wrap">
+                <table class="table" style="font-size:12.5px">
+                  <thead><tr><th>接口</th><th>用户</th><th>状态码</th><th>耗时</th><th>时间</th></tr></thead>
+                  <tbody id="recent-logs"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><b>实时调用流</b>
+              <span class="tag cyan" id="ws-dot" style="opacity:.45"><i class="dot"></i>未连接</span>
+              <span class="right"><label class="switch" title="通过 WebSocket 实时接收网关调用日志"><input type="checkbox" id="ws-toggle"><i></i></label></span>
+            </div>
+            <div class="card-body" style="padding-top:8px">
+              <div id="ws-stream" style="height:212px;overflow-y:auto;font-family:Consolas,monospace;font-size:11.5px;line-height:1.9;color:var(--text-2)">
+                <div class="muted" style="text-align:center;padding:36px 0">打开右上角开关，实时查看每一笔网关调用</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：接口管理 ======== -->
+      <section class="page-view" id="view-apis">
+        <div class="flex" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="page-title">接口管理</div>
+            <div class="page-sub">维护接口定义、参数规范与上下线状态</div>
+          </div>
+          <div class="flex">
+            <a class="btn btn-ghost" href="/docs/export" target="_blank" title="生成自包含 HTML 接口文档，可直接发给第三方接入方">📖 接口文档</a>
+            <a class="btn btn-ghost" href="/api/admin/openapi" target="_blank" title="下载全部在线接口的 OpenAPI 3.0 规范 JSON">⬇ 导出 OpenAPI</a>
+            <button class="btn btn-primary" id="btn-api-new">＋ 新建接口</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding-bottom:2px">
+            <div class="toolbar" style="margin-bottom:12px">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="input" id="api-kw" placeholder="搜索接口名称 / 路径">
+              </div>
+              <select class="select" id="api-cate"><option value="0">全部分类</option></select>
+              <select class="select" id="api-status">
+                <option value="">全部状态</option>
+                <option value="online">在线</option>
+                <option value="maintaining">维护中</option>
+                <option value="offline">已下线</option>
+              </select>
+              <select class="select" id="api-type" style="width:130px">
+                <option value="">全部类型</option>
+                <option value="builtin">内置服务</option>
+                <option value="custom">自定义</option>
+                <option value="plugin">插件接口</option>
+                <option value="external">外部接口</option>
+              </select>
+              <div class="grow"></div>
+              <span class="muted" id="api-count-hint"></span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr>
+                <th style="min-width:210px">接口</th><th>方法</th><th>分类</th><th>类型</th><th>鉴权</th><th>状态 / 开关</th>
+                <th style="text-align:right">累计调用</th><th>更新时间</th><th style="width:130px">操作</th>
+              </tr></thead>
+              <tbody id="api-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagebar" id="api-pager"></div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：插件管理 ======== -->
+      <section class="page-view" id="view-plugins">
+        <div class="flex" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="page-title">插件管理</div>
+            <div class="page-sub">用 Python 编写接口逻辑，保存即成为可分发的接口插件 —— 网关在独立子进程中执行，超时自动保护</div>
+          </div>
+          <div class="flex">
+            <button class="btn btn-ghost" id="btn-dep-manage" title="安装与管理插件可使用的 Python 依赖">📦 依赖管理</button>
+            <button class="btn btn-primary" id="btn-plugin-new">＋ 新建插件</button>
+          </div>
+        </div>
+        <div id="dep-panel"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px" id="plugin-grid"></div>
+      </section>
+
+      <!-- ======== 视图：分类管理 ======== -->
+      <section class="page-view" id="view-categories">
+        <div class="flex" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="page-title">分类管理</div>
+            <div class="page-sub">为接口资产建立清晰的目录结构</div>
+          </div>
+          <button class="btn btn-primary" id="btn-cate-new">＋ 新建分类</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px" id="cate-grid"></div>
+      </section>
+
+      <!-- ======== 视图：用户管理 ======== -->
+      <section class="page-view" id="view-users">
+        <div class="flex" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="page-title">用户管理</div>
+            <div class="page-sub">管理平台账号、角色与启用状态</div>
+          </div>
+          <button class="btn btn-primary" id="btn-user-new">＋ 新建用户</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding-bottom:2px">
+            <div class="toolbar" style="margin-bottom:12px">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="input" id="user-kw" placeholder="搜索用户名 / 昵称 / 邮箱">
+              </div>
+              <select class="select" id="user-status">
+                <option value="">全部状态</option>
+                <option value="1">已启用</option>
+                <option value="0">已禁用</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr>
+                <th>用户</th><th>角色</th><th>邮箱</th><th>状态</th><th>创建时间</th><th>最后登录</th><th style="width:150px">操作</th>
+              </tr></thead>
+              <tbody id="user-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagebar" id="user-pager"></div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：密钥管理 ======== -->
+      <section class="page-view" id="view-keys">
+        <div class="flex" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="page-title">密钥管理</div>
+            <div class="page-sub">全平台 API 密钥的集中视图：管理员可代建、启停、配置白名单或吊销任意用户的密钥</div>
+          </div>
+          <button class="btn btn-primary" id="btn-akey-new">＋ 代建密钥</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding-bottom:2px">
+            <div class="toolbar" style="margin-bottom:12px">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="input" id="akey-kw" placeholder="搜索持有人 / 密钥名称 / 密钥">
+              </div>
+              <div class="grow"></div>
+              <span class="muted" id="akey-count"></span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table" style="font-size:13px">
+              <thead><tr>
+                <th style="min-width:170px">密钥（持有人）</th><th>Key</th><th>白名单</th><th>状态</th><th>创建时间</th><th>最后使用</th><th style="width:200px">操作</th>
+              </tr></thead>
+              <tbody id="akey-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagebar" id="akey-pager"></div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：积分管理 ======== -->
+      <section class="page-view" id="view-credits">
+        <div class="flex" style="justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="page-title">积分管理</div>
+            <div class="page-sub">积分发放与消耗的总账：签到奖励 <b id="cred-signin-hint">-</b>/日，注册赠送 <b id="cred-reg-hint">-</b></div>
+          </div>
+          <button class="btn btn-primary" id="btn-cred-adjust">＋ 充值 / 扣减</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px" class="grid-stats">
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#e8f2ff,#e0f8ff);color:#2e7cf6">💰</div>
+            <div class="num" id="cred-total">-</div>
+            <div class="label">全平台积分总量</div>
+            <div class="deco" style="background:#2e7cf6"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#fff4dd,#fffbe8);color:#f59e0b">🎁</div>
+            <div class="num" id="cred-granted">-</div>
+            <div class="label">累计发放</div>
+            <div class="deco" style="background:#f59e0b"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#ffe9f3,#fff0f0);color:#ec4899">🔥</div>
+            <div class="num" id="cred-consumed">-</div>
+            <div class="label">累计消耗（接口调用）</div>
+            <div class="deco" style="background:#ec4899"></div>
+          </div>
+          <div class="stat-card">
+            <div class="icon" style="background:linear-gradient(135deg,#e3f9ef,#e9fbff);color:#10b981">🏷️</div>
+            <div class="num" id="cred-costed">-</div>
+            <div class="label">计费中接口数</div>
+            <div class="deco" style="background:#10b981"></div>
+          </div>
+        </div>
+
+        <div class="grid-2e section-gap">
+          <div class="card">
+            <div class="card-head"><b>用户积分</b><span class="right">
+              <div class="search-box" style="width:200px"><input class="input" id="cred-kw" placeholder="搜索用户名 / 昵称"></div>
+            </span></div>
+            <div class="table-wrap">
+              <table class="table" style="font-size:12.5px">
+                <thead><tr><th>用户</th><th style="text-align:right">余额</th><th>最近签到</th><th style="width:96px">操作</th></tr></thead>
+                <tbody id="cred-users"></tbody>
+              </table>
+            </div>
+            <div class="pagebar" id="cred-users-pager"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><b>积分流水</b><span class="hint">全平台 · 最新在前</span></div>
+            <div class="table-wrap">
+              <table class="table" style="font-size:12.5px">
+                <thead><tr><th>时间</th><th>用户</th><th>变动</th><th>余额</th><th>事由</th></tr></thead>
+                <tbody id="cred-logs"></tbody>
+              </table>
+            </div>
+            <div class="pagebar" id="cred-logs-pager"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：系统设置 ======== -->
+      <section class="page-view" id="view-settings">
+        <div class="page-title">系统设置</div>
+        <div class="page-sub">运行参数即时生效；数据库引擎切换在迁移完成后重启服务生效</div>
+
+        <div class="grid-2e section-gap">
+          <div class="card">
+            <div class="card-head"><b>🎛️ 运行参数</b><span class="hint">保存后立即生效（多 worker 下 15 秒内同步）</span></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-item"><label>签到奖励下限</label><input class="input" id="set-signin-min" type="number" min="1"><div class="tip">每次签到在此区间随机发放</div></div>
+                <div class="form-item"><label>签到奖励上限</label><input class="input" id="set-signin-max" type="number" min="1"><div class="tip">下限 ≤ 上限，保存时自动校正</div></div>
+              </div>
+              <div class="form-row">
+                <div class="form-item"><label>注册赠送积分</label><input class="input" id="set-register-gift" type="number" min="0"></div>
+                <div class="form-item"><label>站点名称</label><input class="input" id="set-site-name" maxlength="30"></div>
+              </div>
+              <div class="form-item"><label>签到防爬模式</label><select class="select" id="set-checkin-mode">
+                  <option value="both">签名 + 滑块（最严格）</option>
+                  <option value="signature">仅 HMAC 签名</option>
+                  <option value="slider">仅滑块行为验证</option>
+                  <option value="off">关闭（不推荐）</option>
+                </select><div class="tip">防止脚本直连接口刷签到积分；HMAC 凭证 30 秒一次性有效</div></div>
+              <button class="btn btn-primary" id="btn-set-save">保存设置</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><b>🗄️ 数据库</b><span class="hint">当前引擎：<b id="db-current" style="color:var(--primary)">-</b></span></div>
+            <div class="card-body">
+              <div id="db-now" class="muted" style="font-size:12.5px;margin-bottom:14px"></div>
+              <div class="form-row">
+                <div class="form-item"><label>MySQL 主机</label><input class="input" id="db-host" placeholder="127.0.0.1"></div>
+                <div class="form-item"><label>端口</label><input class="input" id="db-port" type="number" value="3306"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-item"><label>用户名</label><input class="input" id="db-user" placeholder="apistar"></div>
+                <div class="form-item"><label>密码</label><input class="input" id="db-pass" type="password" placeholder="留空 = 使用已保存密码"></div>
+              </div>
+              <div class="form-item"><label>数据库名</label><input class="input" id="db-name" placeholder="apistar（需已创建）"></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-ghost" id="btn-db-test">🔌 测试连接</button>
+                <button class="btn btn-primary" id="btn-db-migrate">📦 迁移数据并切换</button>
+              </div>
+              <div id="db-result" style="margin-top:12px"></div>
+              <div style="margin-top:12px;background:#fffbeb;border:1px solid #fdeeb8;border-radius:11px;padding:10px 13px;font-size:12px;color:#92400e;line-height:1.8">
+                ⚠️ 迁移为<b>全量覆盖式</b>（目标库同名表先清空再搬运），完成后自动做行数校验；引擎配置会持久化，<b>重启服务后生效</b>。切回 SQLite 无需连接参数。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 在线更新 -->
+        <div class="card section-gap" style="grid-column:1/-1">
+          <div class="card-head"><b>🆙 在线更新</b>
+            <span class="tag blue" style="margin-left:8px">当前版本 <b id="up-current">-</b></span>
+            <span class="right"><span class="tag gray" id="up-phase">空闲</span></span>
+          </div>
+          <div class="card-body">
+            <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1.2fr">
+              <div class="form-item"><label>Owner</label><input class="input" id="up-owner" placeholder="github 用户/组织"></div>
+              <div class="form-item"><label>Repo</label><input class="input" id="up-repo" placeholder="仓库名"></div>
+              <div class="form-item"><label>Tag</label><input class="input" id="up-tag" placeholder="留空 = latest"></div>
+              <div class="form-item"><label>Token（私库可选）</label><input class="input" id="up-token" type="password" placeholder="留空 = 无"></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="btn-up-check">🔍 检查更新</button>
+              <button class="btn btn-danger" id="btn-up-apply">⬆ 应用更新并重启</button>
+              <button class="btn btn-ghost btn-sm" id="btn-up-rollback" title="从最近一次备份恢复">↩ 回滚</button>
+              <span id="up-result" style="font-size:12.5px;color:var(--text-2)"></span>
+            </div>
+            <div id="up-restart-tip" style="display:none;margin-top:12px;background:#ecfdf5;border:1px solid #c9f3e1;border-radius:11px;padding:10px 14px;font-size:12.5px;color:#047857">
+              ✅ 更新完成，服务正在重启，页面将在恢复后自动刷新…<span id="up-restart-sec"></span>
+            </div>
+            <pre id="up-log" style="display:none;margin-top:12px;background:#0c1a30;color:#9fc3ea;border-radius:12px;padding:13px 15px;font-family:Consolas,monospace;font-size:11.5px;line-height:1.7;max-height:230px;overflow-y:auto;white-space:pre-wrap"></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：通知与维护 ======== -->
+      <section class="page-view" id="view-notices">
+        <div class="page-title">通知与维护</div>
+        <div class="page-sub">发布平台公告展示在用户控制台顶部；维护模式开启后普通用户将被拦截</div>
+
+        <div class="grid-2e section-gap">
+          <!-- 维护模式 -->
+          <div class="card">
+            <div class="card-head"><b>🛠️ 维护模式</b><span class="right"><span class="tag gray" id="mt-state">读取中…</span></span></div>
+            <div class="card-body">
+              <div class="form-item"><label>维护公告文案</label>
+                <textarea class="input" id="mt-msg" rows="3" placeholder="系统正在维护，预计 XX 时间恢复，给您带来不便敬请谅解"></textarea>
+              </div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-primary" id="btn-mt-on" style="background:#f59e0b;box-shadow:0 8px 18px -8px rgba(245,158,11,.65)">开启维护</button>
+                <button class="btn btn-ghost" id="btn-mt-off">关闭维护</button>
+              </div>
+              <div style="margin-top:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:11px;padding:10px 13px;font-size:12px;color:#b91c1c;line-height:1.8">
+                开启后：<b>普通用户</b>的控制台所有操作返回「维护中」，网关全部接口返回 503；<b>管理员</b>仍可登录管理端操作（以便关闭维护）。官网门户不受影响。
+              </div>
+            </div>
+          </div>
+
+          <!-- 新建/编辑通知 -->
+          <div class="card">
+            <div class="card-head"><b>📢 发布通知</b><span class="hint" id="nt-edit-hint">新通知</span></div>
+            <div class="card-body">
+              <div class="form-item"><label>标题<span class="req">*</span></label><input class="input" id="nt-title" maxlength="60" placeholder="一句话概括，如：9 月 10 日凌晨系统升级"></div>
+              <div class="form-item"><label>内容<span class="req">*</span></label>
+                <textarea class="input" id="nt-content" rows="4" maxlength="2000" placeholder="详细说明：影响范围、时间、替代方案等"></textarea></div>
+              <div class="form-row">
+                <div class="form-item"><label>级别</label><select class="select" id="nt-level">
+                  <option value="info">📢 通知（蓝）</option>
+                  <option value="warn">⚠️ 注意（黄）</option>
+                  <option value="critical">🚨 重要（红）</option>
+                </select></div>
+                <div class="form-item"><label>展示设置</label>
+                  <div class="flex" style="margin-top:6px">
+                    <label class="flex" style="cursor:pointer;font-size:13px"><input type="checkbox" id="nt-enabled" checked style="accent-color:var(--primary)"> 启用</label>
+                    <label class="flex" style="cursor:pointer;font-size:13px;margin-left:14px"><input type="checkbox" id="nt-pinned" style="accent-color:var(--primary)"> 置顶</label>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-primary" id="btn-nt-save">发布通知</button>
+                <button class="btn btn-ghost" id="btn-nt-reset">清空表单</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 通知列表 -->
+        <div class="card">
+          <div class="card-head"><b>已发布通知</b><span class="muted" id="nt-count"></span></div>
+          <div class="table-wrap">
+            <table class="table" style="font-size:13px">
+              <thead><tr><th>通知</th><th>级别</th><th>状态</th><th>发布人</th><th>时间</th><th style="width:170px">操作</th></tr></thead>
+              <tbody id="nt-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：调用日志 ======== -->
+      <section class="page-view" id="view-logs">
+        <div class="page-title">调用日志</div>
+        <div class="page-sub">全平台接口调用的实时流水与错误追踪</div>
+        <div class="card">
+          <div class="card-body" style="padding-bottom:2px">
+            <div class="toolbar" style="margin-bottom:12px">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="input" id="log-kw" placeholder="搜索接口 / 用户 / IP">
+              </div>
+              <select class="select" id="log-result">
+                <option value="">全部结果</option>
+                <option value="success">仅成功</option>
+                <option value="fail">仅失败</option>
+              </select>
+              <select class="select" id="log-status" style="width:120px">
+                <option value="">全部状态码</option>
+                <option value="200">200</option>
+                <option value="400">400</option>
+                <option value="401">401</option>
+                <option value="404">404</option>
+                <option value="429">429 限流</option>
+                <option value="500">500</option>
+                <option value="502">502</option>
+                <option value="503">503</option>
+              </select>
+              <input class="input" id="log-from" type="date" style="width:150px" title="开始日期">
+              <span class="muted">至</span>
+              <input class="input" id="log-to" type="date" style="width:150px" title="结束日期">
+              <button class="btn btn-ghost btn-sm" id="log-clear" title="清空筛选">清空</button>
+              <div class="grow"></div>
+              <span class="muted" id="log-total-hint"></span>
+              <button class="btn btn-ghost btn-sm" id="btn-log-clean" title="删除 N 天前的调用日志，释放磁盘空间">🧹 清理</button>
+              <button class="btn btn-ghost btn-sm" id="btn-log-export" title="按当前筛选导出 CSV（最多 5000 条）">⬇ 导出 CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table" style="font-size:13px">
+              <thead><tr>
+                <th>时间</th><th style="min-width:170px">接口</th><th>方法</th><th>调用方</th><th>来源 IP</th><th>状态码</th><th>耗时</th><th>结果</th>
+              </tr></thead>
+              <tbody id="log-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagebar" id="log-pager"></div>
+        </div>
+      </section>
+
+      <!-- ======== 视图：操作审计 ======== -->
+      <section class="page-view" id="view-audit">
+        <div class="page-title">操作审计</div>
+        <div class="page-sub">管理员关键操作的完整留痕：谁在什么时间做了什么</div>
+        <div class="card">
+          <div class="card-body" style="padding-bottom:2px">
+            <div class="toolbar" style="margin-bottom:12px">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="input" id="audit-kw" placeholder="搜索操作人 / 动作 / 对象 / 详情">
+              </div>
+              <div class="grow"></div>
+              <span class="muted" id="audit-count"></span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table" style="font-size:13px">
+              <thead><tr>
+                <th style="width:170px">时间</th><th style="width:130px">操作人</th><th style="width:120px">动作</th><th>对象</th><th>详情</th>
+              </tr></thead>
+              <tbody id="audit-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagebar" id="audit-pager"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script src="/static/vendor/echarts.min.js"></script>
+<script src="/static/common.js?v=9"></script>
+<script>
+/* ==================== 修改登录密码 ==================== */
+function changePwdModal() {
+  const mask = openModal(
+    '<div class="modal-head"><b>修改登录密码</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="form-item"><label>当前密码<span class="req">*</span></label><input class="input" id="ap-old" type="password" placeholder="请输入当前密码"></div>' +
+      '<div class="form-item"><label>新密码<span class="req">*</span></label><input class="input" id="ap-new" type="password" placeholder="至少 8 位，含字母与数字"></div>' +
+      '<div class="form-item"><label>确认新密码<span class="req">*</span></label><input class="input" id="ap-new2" type="password" placeholder="再次输入新密码">' +
+        '<div class="tip">修改后下次登录请使用新密码，当前会话保持有效</div></div>' +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="ap-save">确认修改</button>' +
+    "</div>", { width: 440 });
+  mask.querySelector("#ap-save").addEventListener("click", async () => {
+    const oldPwd = mask.querySelector("#ap-old").value;
+    const newPwd = mask.querySelector("#ap-new").value;
+    const newPwd2 = mask.querySelector("#ap-new2").value;
+    if (!oldPwd || !newPwd) { toast("请填写完整", "warn"); return; }
+    if (!checkPwdStrength(newPwd)) return;
+    if (newPwd !== newPwd2) { toast("两次输入的新密码不一致", "warn"); return; }
+    try {
+      await api("/api/admin/password", { method: "PUT", body: { old_password: oldPwd, new_password: newPwd } });
+      toast("密码修改成功，下次登录请使用新密码", "success", 3000);
+      mask.close();
+    } catch (e) { /* toast 已提示 */ }
+  });
+}
+
+/* ==================== 初始化 ==================== */
+const me = Auth.guard("admin");
+
+function initPage() {
+  // 用户信息
+  document.getElementById("side-name").textContent = me.nickname;
+  document.getElementById("top-name").textContent = me.nickname;
+  document.getElementById("side-avatar").textContent = initials(me.nickname);
+  document.getElementById("top-avatar").textContent = initials(me.nickname);
+  document.getElementById("dash-date").textContent =
+    new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+
+  // 导航
+  const navDefs = {
+    dashboard: ["dashboard", "数据概览", ""],
+    apis: ["api", "接口管理", ""],
+    plugins: ["plugin", "插件管理", ""],
+    categories: ["layers", "分类管理", ""],
+    users: ["users", "用户管理", ""],
+    keys: ["key", "密钥管理", ""],
+    credits: ["dashboard", "积分管理", ""],
+    settings: ["layers", "系统设置", ""],
+    notices: ["logs", "通知与维护", ""],
+    logs: ["logs", "调用日志", ""],
+    audit: ["key", "操作审计", ""]
+  };
+  Object.entries(navDefs).forEach(([k, [icon, label]]) => {
+    const a = document.getElementById("nav-" + k);
+    a.innerHTML = ICONS[icon] + "<span>" + label + "</span>";
+    a.addEventListener("click", () => switchView(k));
+  });
+  document.querySelectorAll("[data-view-link]").forEach(el =>
+    el.addEventListener("click", () => switchView(el.dataset.viewLink)));
+
+  // 用户菜单
+  const chip = document.getElementById("user-chip"), menu = document.getElementById("user-menu");
+  chip.addEventListener("click", e => {
+    if (e.target.closest(".dropdown")) return;
+    menu.classList.toggle("open");
+  });
+  document.addEventListener("click", e => { if (!chip.contains(e.target)) menu.classList.remove("open"); });
+  menu.querySelector('[data-act="console"]').addEventListener("click", () => location.href = "/console");
+  menu.querySelector('[data-act="password"]').addEventListener("click", changePwdModal);
+  menu.querySelector('[data-act="logout"]').addEventListener("click", async () => {
+    try { await api("/api/auth/logout", { method: "POST" }); } catch (e) {}
+    Auth.clear();
+    location.href = "/";
+  });
+
+  bindApisView();
+  bindPluginsView();
+  bindCategoriesView();
+  bindUsersView();
+  bindAdminKeysView();
+  bindCreditsAdminView();
+  bindSettingsView();
+  bindNoticesAdminView();
+  bindLogsView();
+  bindAuditView();
+
+  const route = location.hash.replace("#", "") || "dashboard";
+  switchView(route, true);
+}
+
+const VIEW_TITLES = {
+  dashboard: ["数据概览", "平台运行情况一屏掌握"],
+  apis: ["接口管理", "维护接口定义、参数规范与上下线状态"],
+  plugins: ["插件管理", "Python 插件接口的编写、运行与管理"],
+  categories: ["分类管理", "为接口资产建立清晰的目录结构"],
+  users: ["用户管理", "管理平台账号、角色与启用状态"],
+  keys: ["密钥管理", "全平台 API 密钥的集中管理"],
+  credits: ["积分管理", "积分发放、消耗与流水"],
+  settings: ["系统设置", "运行参数与数据库管理"],
+  notices: ["通知与维护", "平台公告发布与维护模式"],
+  logs: ["调用日志", "全平台接口调用的实时流水与错误追踪"],
+  audit: ["操作审计", "管理员关键操作的完整留痕"]
+};
+let currentView = "dashboard";
+function switchView(v, silent) {
+  if (!VIEW_TITLES[v]) v = "dashboard";
+  currentView = v;
+  if (v !== "dashboard" && dashAutoTimer) setDashAuto(false); // 离开概览页自动停止刷新
+  document.querySelectorAll(".page-view").forEach(s => s.classList.remove("active"));
+  document.getElementById("view-" + v).classList.add("active");
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("active", a.dataset.view === v));
+  document.getElementById("crumb").innerHTML =
+    VIEW_TITLES[v][0] + "<small>" + VIEW_TITLES[v][1] + "</small>";
+  location.hash = v;
+  if (v === "dashboard") loadDashboard();
+  if (v === "apis") { loadCategoriesToSelect(); loadApis(); }
+  if (v === "plugins") { loadPlugins(); loadDeps(); }
+  if (v === "categories") loadCategories();
+  if (v === "users") loadUsers();
+  if (v === "keys") loadAdminKeys();
+  if (v === "credits") loadCreditsAdmin();
+  if (v === "settings") loadSettingsView();
+  if (v === "notices") { loadNoticesAdmin(); loadMaintenanceState(); }
+  if (v === "logs") loadLogs();
+  if (v === "audit") loadAudit();
+}
+
+/* ==================== 数据概览 ==================== */
+let trendChart, cateChart, typeChart, latencyChart, statusChart;
+const dashState = { days: 14 };
+
+function loadDashboard() {
+  api("/api/admin/dashboard?days=" + dashState.days).then(d => {
+    const s = d.stats;
+    document.getElementById("st-api").innerHTML = fmtFull(s.apiTotal);
+    document.getElementById("st-api-online").textContent = s.apiOnline;
+    document.getElementById("st-user").innerHTML = fmtFull(s.userTotal);
+    document.getElementById("st-user-active").textContent = s.userActive;
+    document.getElementById("st-calls").innerHTML = fmtFull(s.callsToday);
+    const dl = document.getElementById("st-calls-delta");
+    if (s.callsYesterday > 0) {
+      const pct = ((s.callsToday - s.callsYesterday) / s.callsYesterday * 100).toFixed(1);
+      const up = pct >= 0;
+      dl.className = "delta " + (up ? "up" : "down");
+      dl.textContent = (up ? "↑ " : "↓ ") + Math.abs(pct) + "% 较昨日";
+    } else { dl.textContent = "— 新的一天"; }
+    document.getElementById("st-rate").innerHTML = s.successRate + "<small>%</small>";
+
+    renderTrend(d.trend);
+    renderCate(d.categoryDist || []);
+    renderTypeDist(d.typeDist || []);
+    renderLatencyDist(d.latencyDist || []);
+    renderStatusDist(d.statusDist || []);
+    renderTopApis(d.topApis || []);
+    renderSlowApis(d.slowApis || []);
+    renderRecentLogs(d.recentLogs || []);
+    renderDashExtras(s);
+  });
+}
+
+/* ---- 限流拦截 / 平均耗时 等补充指标 ---- */
+function renderDashExtras(s) {
+  let box = document.getElementById("dash-extras");
+  if (!box) {
+    const host = document.querySelector(".grid-stats");
+    box = document.createElement("div");
+    box.id = "dash-extras";
+    box.className = "card section-gap";
+    host.parentNode.insertBefore(box, host.nextSibling);
+  }
+  box.innerHTML =
+    '<div class="card-body" style="display:flex;gap:26px;align-items:center;flex-wrap:wrap;padding:14px 18px">' +
+      '<b style="font-size:13.5px">近 ' + s.days + " 天运行指标</b>" +
+      '<span class="muted">平均耗时 <b style="color:var(--text);font-size:15px;font-variant-numeric:tabular-nums">' + fmtFull(s.avgLatency) + '</b> ms</span>' +
+      '<span class="muted">限流拦截 <b style="color:' + (s.rateBlocked ? "var(--warning)" : "var(--text)") + ';font-size:15px;font-variant-numeric:tabular-nums">' + fmtFull(s.rateBlocked) + '</b> 次' +
+        (s.rateBlocked ? ' <span class="tag amber" style="margin-left:6px"><i class="dot"></i>触发 429</span>' : "") + "</span>" +
+      '<span class="muted" style="margin-left:auto">统计窗口：<b style="color:var(--text)">近 ' + s.days + " 天</b> · 成功率 <b style=\"color:var(--text)\">" + s.successRate + "%</b></span>" +
+    "</div>";
+}
+
+document.getElementById("btn-dash-refresh").addEventListener("click", () => {
+  loadDashboard();
+  toast("数据已刷新", "success", 1200);
+});
+
+document.querySelectorAll("#dash-range button").forEach(b =>
+  b.addEventListener("click", () => {
+    dashState.days = Number(b.dataset.days);
+    document.querySelectorAll("#dash-range button").forEach(x => x.classList.toggle("active", x === b));
+    loadDashboard();
+  }));
+
+/* ---- 自动刷新（仅数据概览视图生效，切换视图自动停止） ---- */
+let dashAutoTimer = null;
+function setDashAuto(on) {
+  const btn = document.getElementById("btn-dash-auto");
+  if (dashAutoTimer) { clearInterval(dashAutoTimer); dashAutoTimer = null; }
+  if (on) {
+    dashAutoTimer = setInterval(() => {
+      if (currentView === "dashboard" && document.visibilityState === "visible") loadDashboard();
+    }, 10000);
+    btn.textContent = "⟳ 自动刷新：开";
+    btn.style.color = "var(--success)";
+    btn.style.borderColor = "#a7e3cd";
+  } else {
+    btn.textContent = "⟳ 自动刷新：关";
+    btn.style.color = "";
+    btn.style.borderColor = "";
+  }
+}
+document.getElementById("btn-dash-auto").addEventListener("click", () => {
+  setDashAuto(!dashAutoTimer);
+});
+
+function renderTrend(trend) {
+  const el = document.getElementById("chart-trend");
+  trendChart = trendChart || initChart(el);
+  trendChart.setOption({
+    grid: { left: 44, right: 16, top: 34, bottom: 26 },
+    legend: { right: 0, top: 0, itemWidth: 14, textStyle: { color: "#64748b", fontSize: 12 } },
+    tooltip: { trigger: "axis", backgroundColor: "#fff", borderColor: "#e8ecf4", textStyle: { color: "#1e293b", fontSize: 12 } },
+    xAxis: { type: "category", data: trend.map(t => t.date), ...AXIS_STYLE, splitLine: { show: false } },
+    yAxis: { type: "value", ...AXIS_STYLE },
+    series: [
+      {
+        name: "调用次数", type: "bar", data: trend.map(t => t.calls),
+        barWidth: "46%",
+        itemStyle: { borderRadius: [5, 5, 0, 0], color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "#4d9bfd" }, { offset: 1, color: "#c6e7ff" }]) }
+      },
+      {
+        name: "错误数", type: "line", data: trend.map(t => t.errors), smooth: true,
+        symbol: "circle", symbolSize: 6, lineStyle: { width: 2.5, color: "#f43f5e" },
+        itemStyle: { color: "#f43f5e" }
+      }
+    ]
+  });
+}
+
+function renderCate(dist) {
+  const el = document.getElementById("chart-cate");
+  cateChart = cateChart || initChart(el);
+  cateChart.setOption({
+    color: CHART_COLORS,
+    tooltip: { trigger: "item", formatter: "{b}<br/>{c} 次（{d}%）", backgroundColor: "#fff", borderColor: "#e8ecf4", textStyle: { color: "#1e293b", fontSize: 12 } },
+    legend: { bottom: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: "#64748b", fontSize: 11.5 }, icon: "circle" },
+    series: [{
+      type: "pie", radius: ["46%", "68%"], center: ["50%", "44%"],
+      itemStyle: { borderColor: "#fff", borderWidth: 3, borderRadius: 6 },
+      label: { show: false },
+      data: dist
+    }]
+  });
+}
+
+function renderTopApis(list) {
+  const max = Math.max(...list.map(x => x.calls), 1);
+  const colors = ["#2e7cf6", "#06b6d4", "#8b5cf6", "#f59e0b", "#10b981"];
+  document.getElementById("top-apis").innerHTML = list.map((x, i) =>
+    '<div class="top-api-item">' +
+      '<span class="rank" style="background:' + colors[i] + '22;color:' + colors[i] + '">' + (i + 1) + "</span>" +
+      '<div class="meta"><b>' + esc(x.name) + "</b>" +
+        '<div class="progress"><i style="width:' + Math.round(x.calls / max * 100) + '%;background:linear-gradient(90deg,' + colors[i] + ',' + colors[i] + '99)"></i></div>' +
+      "</div>" +
+      '<span class="calls">' + fmtFull(x.calls) + ' <span class="muted" style="font-weight:400">次</span></span>' +
+    "</div>").join("");
+}
+
+function renderRecentLogs(logs) {
+  document.getElementById("recent-logs").innerHTML = logs.map(l =>
+    "<tr>" +
+      '<td><div class="cell-main" style="font-size:12.5px;white-space:nowrap">' + esc(l.api_name) + "</div>" +
+        '<div style="margin-top:3px">' + methodBadge(l.method) + "</div></td>" +
+      "<td>" + esc(l.user) + "</td>" +
+      "<td>" + codePill(l.status_code) + "</td>" +
+      "<td style=\"white-space:nowrap\">" + latencyTag(l.latency) + "</td>" +
+      '<td class="muted" style="white-space:nowrap">' + l.created_at.slice(5, 16) + "</td>" +
+    "</tr>").join("");
+}
+
+function renderTypeDist(dist) {
+  const el = document.getElementById("chart-type");
+  if (!el) return;
+  typeChart = typeChart || initChart(el);
+  typeChart.setOption({
+    color: ["#06b6d4", "#94a3b8", "#f59e0b", "#2e7cf6"],
+    tooltip: { trigger: "item", formatter: "{b}<br/>{c} 个（{d}%）", backgroundColor: "#fff", borderColor: "#e8ecf4", textStyle: { color: "#1e293b", fontSize: 12 } },
+    legend: { bottom: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: "#64748b", fontSize: 11.5 }, icon: "circle" },
+    series: [{
+      type: "pie", radius: ["42%", "66%"], center: ["50%", "42%"],
+      itemStyle: { borderColor: "#fff", borderWidth: 3, borderRadius: 6 },
+      label: { show: false },
+      data: dist
+    }]
+  });
+}
+
+function renderLatencyDist(dist) {
+  const el = document.getElementById("chart-latency");
+  if (!el) return;
+  latencyChart = latencyChart || initChart(el);
+  latencyChart.setOption({
+    grid: { left: 44, right: 14, top: 18, bottom: 24 },
+    tooltip: { trigger: "axis", backgroundColor: "#fff", borderColor: "#e8ecf4", textStyle: { color: "#1e293b", fontSize: 12 } },
+    xAxis: { type: "category", data: dist.map(d => d.name), ...AXIS_STYLE, splitLine: { show: false } },
+    yAxis: { type: "value", ...AXIS_STYLE },
+    series: [{
+      type: "bar", data: dist.map(d => d.value), barWidth: "52%",
+      itemStyle: {
+        borderRadius: [5, 5, 0, 0],
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "#22d3ee" }, { offset: 1, color: "#a5f3fc" }])
+      }
+    }]
+  });
+}
+
+function renderStatusDist(dist) {
+  const el = document.getElementById("chart-status");
+  if (!el) return;
+  const COLOR = { "2xx": "#10b981", "3xx": "#0ea5e9", "401": "#8b5cf6", "429": "#f59e0b", "4xx": "#f97316", "5xx": "#f43f5e" };
+  statusChart = statusChart || initChart(el);
+  statusChart.setOption({
+    grid: { left: 44, right: 14, top: 18, bottom: 24 },
+    tooltip: { trigger: "axis", backgroundColor: "#fff", borderColor: "#e8ecf4", textStyle: { color: "#1e293b", fontSize: 12 } },
+    xAxis: { type: "category", data: dist.map(d => d.name), ...AXIS_STYLE, splitLine: { show: false } },
+    yAxis: { type: "value", ...AXIS_STYLE },
+    series: [{
+      type: "bar", barWidth: "52%",
+      data: dist.map(d => ({ value: d.value, itemStyle: { color: COLOR[d.name] || "#2e7cf6", borderRadius: [5, 5, 0, 0] } }))
+    }]
+  });
+}
+
+function renderSlowApis(list) {
+  const el = document.getElementById("slow-apis");
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="padding:26px">' + ICONS.empty + "<p>暂无数据</p></div>";
+    return;
+  }
+  const max = Math.max(...list.map(x => x.avg_latency), 1);
+  el.innerHTML = list.map(x =>
+    '<div class="top-api-item">' +
+      methodBadge(x.method) +
+      '<div class="meta"><b style="font-size:13px">' + esc(x.name) + "</b>" +
+        '<div class="progress"><i style="width:' + Math.round(x.avg_latency / max * 100) + '%;background:linear-gradient(90deg,#f59e0b,#fbbf2499)"></i></div>' +
+      "</div>" +
+      '<span style="font-size:12.5px;font-weight:600;color:#d97706;font-variant-numeric:tabular-nums">' +
+        fmtFull(x.avg_latency) + ' <span class="muted" style="font-weight:400">ms</span></span>' +
+    "</div>").join("");
+}
+
+/* ==================== WebSocket 实时调用流 ==================== */
+let wsConn = null, wsRetry = 0;
+
+function wsSetStatus(on) {
+  const dot = document.getElementById("ws-dot");
+  dot.style.opacity = on ? "1" : ".45";
+  dot.className = "tag " + (on ? "green" : "cyan");
+  dot.innerHTML = '<i class="dot' + (on ? " pulse" : "") + '"></i>' + (on ? "已连接" : "未连接");
+}
+
+function wsAppend(log) {
+  const box = document.getElementById("ws-stream");
+  if (box.querySelector(".muted")) box.innerHTML = "";
+  const color = log.status_code === 200 ? "var(--success)" : log.status_code >= 500 ? "var(--danger)" : "var(--warning)";
+  const row = document.createElement("div");
+  row.style.borderBottom = "1px dashed #eef2f8";
+  row.style.padding = "3px 2px";
+  row.innerHTML =
+    '<span style="color:var(--text-3)">' + (log.created_at || "").slice(11, 19) + "</span>  " +
+    '<b style="color:' + color + '">' + log.method + "</b> " +
+    esc(log.api_name) + " · " + esc(log.user || "guest") +
+    ' · <b style="color:' + color + '">' + log.status_code + "</b> · " + log.latency + "ms";
+  box.prepend(row);
+  while (box.children.length > 60) box.lastChild.remove();
+}
+
+function wsConnect() {
+  const token = Auth.token;
+  if (!token) return;
+  const proto = location.protocol === "https:" ? "wss://" : "ws://";
+  try { wsConn && wsConn.close(); } catch (e) {}
+  wsConn = new WebSocket(proto + location.host + "/ws/logs?token=" + encodeURIComponent(token));
+  wsConn.onopen = () => { wsSetStatus(true); wsRetry = 0; };
+  wsConn.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
+      if (d.type === "log") wsAppend(d.data);
+    } catch (err) {}
+  };
+  wsConn.onclose = () => {
+    wsSetStatus(false);
+    // 指数退避重连（仅开关仍为开时）
+    if (document.getElementById("ws-toggle").checked && wsRetry < 5) {
+      wsRetry += 1;
+      setTimeout(() => { if (document.getElementById("ws-toggle").checked) wsConnect(); }, 1000 * wsRetry);
+    }
+  };
+  wsConn.onerror = () => { try { wsConn.close(); } catch (e) {} };
+}
+
+document.getElementById("ws-toggle").addEventListener("change", e => {
+  if (e.target.checked) {
+    wsConnect();
+    toast("实时日志已开启", "success", 1200);
+  } else {
+    if (wsConn) { try { wsConn.close(); } catch (err) {} wsConn = null; }
+    wsSetStatus(false);
+  }
+});
+
+/* ==================== 接口管理 ==================== */
+const apiState = { page: 1, pageSize: 8 };
+const METHOD_OPTS = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+const PARAM_TYPES = ["string", "integer", "number", "boolean", "object", "array"];
+const PARAM_POS = ["query", "body", "path", "header"];
+const STATUS_META = { online: "在线", maintaining: "维护中", offline: "已下线" };
+
+function bindApisView() {
+  document.getElementById("api-kw").addEventListener("input", debounce(() => { apiState.page = 1; loadApis(); }));
+  document.getElementById("api-cate").addEventListener("change", () => { apiState.page = 1; loadApis(); });
+  document.getElementById("api-status").addEventListener("change", () => { apiState.page = 1; loadApis(); });
+  document.getElementById("api-type").addEventListener("change", () => { apiState.page = 1; loadApis(); });
+  document.getElementById("btn-api-new").addEventListener("click", () => apiModal(null));
+  document.getElementById("api-tbody").addEventListener("click", e => {
+    const edit = e.target.closest("[data-edit]"), del = e.target.closest("[data-del]"), cp = e.target.closest("[data-copypath]");
+    const pb = e.target.closest("[data-probe]");
+    if (pb) return probeApi(JSON.parse(pb.dataset.probe));
+    if (cp) return copyText(location.origin + cp.dataset.copypath, cp);
+    if (edit) apiModal(JSON.parse(edit.dataset.edit));
+    if (del) deleteApi(JSON.parse(del.dataset.del));
+  });
+  document.getElementById("api-tbody").addEventListener("change", async e => {
+    const sw = e.target.closest("[data-api-switch]");
+    if (!sw) return;
+    const a = JSON.parse(sw.dataset.apiSwitch);
+    const status = sw.checked ? "online" : "offline";
+    try {
+      await api("/api/admin/apis/" + a.id + "/status", { method: "PATCH", body: { status } });
+      toast("「" + a.name + "」已" + (sw.checked ? "上架（在线）" : "下线"), "success");
+      loadApis();
+    } catch (err) { sw.checked = !sw.checked; }
+  });
+}
+
+async function loadCategoriesToSelect() {
+  const d = await api("/api/admin/categories", { silent: true });
+  window._cateList = d.items;
+  const sel = document.getElementById("api-cate");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="0">全部分类</option>' +
+    d.items.map(c => '<option value="' + c.id + '">' + esc(c.name) + "（" + c.api_count + "）</option>").join("");
+  if (cur) sel.value = cur;
+}
+
+async function loadApis() {
+  const kw = document.getElementById("api-kw").value.trim();
+  const cate = document.getElementById("api-cate").value;
+  const status = document.getElementById("api-status").value;
+  const d = await api(`/api/admin/apis?keyword=${encodeURIComponent(kw)}&category_id=${cate}&status=${status}&api_type=${document.getElementById("api-type").value}&page=${apiState.page}&page_size=${apiState.pageSize}`, { silent: true });
+  document.getElementById("api-count-hint").textContent = "共 " + d.total + " 个接口";
+  const tb = document.getElementById("api-tbody");
+  tb.innerHTML = d.items.length ? d.items.map(a =>
+    "<tr>" +
+      '<td><div class="cell-main">' + (a.icon ? '<span style="margin-right:5px">' + esc(a.icon) + "</span>" : "") + esc(a.name) + '</div><div class="api-path">' + esc(a.path) + ' <span style="color:#b9c8de">· ' + esc(a.version) + "</span></div></td>" +
+      "<td>" + methodBadge(a.method) + "</td>" +
+      "<td>" + esc(a.category_name || "-") + "</td>" +
+      "<td>" + apiTypeTag(a.api_type) + "</td>" +
+      "<td>" + authTypeTag(a.auth_type) + "</td>" +
+      '<td><div class="flex">' + apiStatusTag(a.status) +
+        '<label class="switch" title="一键上架/下线"><input type="checkbox" data-api-switch=\'' +
+        esc(JSON.stringify({ id: a.id, name: a.name })) + "'" + (a.status === "online" ? " checked" : "") + '><i></i></label></div></td>' +
+      '<td class="num" style="text-align:right;font-weight:600">' + fmtFull(a.call_count) +
+        (a.cost ? '<div><span class="tag amber" title="每次成功调用消耗">' + a.cost + " 分/次</span></div>" : "") + "</td>" +
+      '<td class="muted">' + a.updated_at.slice(0, 10) + "</td>" +
+      '<td><div class="actions">' +
+        '<button class="btn btn-ghost btn-sm" title="复制调用路径" data-copypath="' + esc(a.path) + '">⧉</button>' +
+        '<button class="btn btn-ghost btn-sm" title="按接口定义真实发一次请求，检测连通性" data-probe=\'' + esc(JSON.stringify({ id: a.id, name: a.name })) + "\'>📡 探测</button>" +
+        '<button class="btn btn-ghost btn-sm" data-edit=\'' + esc(JSON.stringify(a)) + "\'>编辑</button>" +
+        '<button class="btn btn-danger btn-sm" data-del=\'' + esc(JSON.stringify({ id: a.id, name: a.name })) + "\'>删除</button>" +
+      "</div></td>" +
+    "</tr>").join("")
+    : '<tr><td colspan="9"><div class="empty">' + ICONS.empty + "<p>没有匹配的接口</p></div></td></tr>";
+  renderPagination(document.getElementById("api-pager"), d.total, apiState.page, apiState.pageSize, p => { apiState.page = p; loadApis(); });
+}
+
+async function deleteApi(a) {
+  const ok = await confirmDialog("删除接口", "确定删除接口 <b>" + esc(a.name) + "</b> 吗？<br><span style='color:var(--text-3);font-size:12px'>删除后不可恢复，线上调用将立即返回 404。</span>");
+  if (!ok) return;
+  await api("/api/admin/apis/" + a.id, { method: "DELETE" });
+  toast("接口已删除");
+  loadApis();
+}
+
+async function probeApi(a) {
+  toast("正在探测「" + a.name + "」…", "info", 1500);
+  let r;
+  try { r = await api("/api/admin/apis/" + a.id + "/probe", { method: "POST", silent: true }); }
+  catch (e) { toast("探测失败：" + e.message, "error"); return; }
+  const head = r.reachable
+    ? '<span class="tag green"><i class="dot"></i>可达</span>'
+    : '<span class="tag red"><i class="dot"></i>不可达</span>';
+  openModal(
+    '<div class="modal-head"><b>连通性自检 · ' + esc(a.name) + '</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="resp-meta">' + head + codePill(r.status_code || 0) +
+        '<span class="tag gray">耗时 ' + r.latency_ms + " ms</span>" +
+        '<span class="tag cyan">不写入调用日志</span></div>' +
+      '<div style="font-size:12.5px;color:var(--text-2);margin-bottom:8px">' + esc(r.message) + "</div>" +
+      '<div class="json-view ' + (r.reachable ? "ok" : "bad") + '">' + highlightJSON(r.body || {}) + "</div>" +
+    "</div>" +
+    '<div class="modal-foot"><button class="btn btn-primary" data-close>关闭</button></div>', { width: 560 });
+}
+
+/* ---- 接口新建/编辑弹窗 ---- */
+let paramRows = [];
+const BUILTIN_TEMPLATES = {
+  time:     { label: "时间查询（GET /svc/time）", name: "时间查询", method: "GET", path: "/svc/time", desc: "返回服务器当前时间、时间戳与星期信息", owner: "平台核心组", auth: "open",
+              params: [{ name: "timezone", position: "query", type: "string", required: 0, description: "预留：时区标识，默认 UTC+8" }] },
+  ip:       { label: "IP 归属查询（GET /svc/ip）", name: "IP 归属查询", method: "GET", path: "/svc/ip", desc: "返回调用方的客户端 IP 地址", owner: "平台核心组", auth: "open", params: [] },
+  uuid:     { label: "UUID 生成（GET /svc/uuid）", name: "UUID 生成", method: "GET", path: "/svc/uuid", desc: "批量生成标准 UUID v4", owner: "平台核心组", auth: "open",
+              params: [{ name: "count", position: "query", type: "integer", required: 0, description: "生成数量，1-100，默认 1" }] },
+  random:   { label: "随机数生成（GET /svc/random）", name: "随机数生成", method: "GET", path: "/svc/random", desc: "生成指定范围内的随机整数", owner: "平台核心组", auth: "open",
+              params: [{ name: "min", position: "query", type: "integer", required: 0, description: "最小值，默认 0" }, { name: "max", position: "query", type: "integer", required: 0, description: "最大值，默认 100" }] },
+  echo:     { label: "Echo 回显（POST /svc/echo）", name: "Echo 回显", method: "POST", path: "/svc/echo", desc: "原样回显请求内容，用于联调测试", owner: "平台核心组", auth: "login",
+              params: [{ name: "content", position: "body", type: "string", required: 1, description: "需要回显的内容" }] },
+  validate: { label: "数据校验（POST /svc/validate）", name: "数据校验", method: "POST", path: "/svc/validate", desc: "校验邮箱 / 手机号 / 身份证号格式", owner: "平台核心组", auth: "open",
+              params: [{ name: "type", position: "body", type: "string", required: 1, description: "校验类型：email / mobile / idcard" }, { name: "value", position: "body", type: "string", required: 1, description: "待校验的值" }] },
+  hitokoto: { label: "每日一言（GET /svc/hitokoto）", name: "每日一言", method: "GET", path: "/svc/hitokoto", desc: "随机返回一条名言警句", owner: "AI 开放平台", auth: "open", params: [] },
+  weather:  { label: "城市天气查询（GET /svc/weather）", name: "城市天气查询", method: "GET", path: "/svc/weather", desc: "查询城市实时天气（模拟数据）", owner: "地图组", auth: "login",
+              params: [{ name: "city", position: "query", type: "string", required: 1, description: "城市名称，如：上海" }] }
+};
+
+const PLUGIN_SAMPLE = 'def handler(query, body, ip):\n' +
+  '    # query: 查询参数字典 | body: 请求体字典 | ip: 调用方 IP\n' +
+  '    name = str(query.get("name", "world"))\n' +
+  '    return {\n' +
+  '        "message": "hello, " + name,\n' +
+  '        "time": datetime.now().strftime("%H:%M:%S"),\n' +
+  '    }\n';
+
+/* ---- 接口版本历史与差异对比 ---- */
+async function versionHistoryModal(a) {
+  const d = await api("/api/admin/apis/" + a.id + "/versions", { silent: true });
+  const list = d.items || [];
+  const mask = openModal(
+    '<div class="modal-head"><b>版本历史 · ' + esc(a.name) + '</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      (list.length
+        ? '<div class="card" style="box-shadow:none;overflow:hidden"><div class="table-wrap"><table class="table" style="font-size:12.5px">' +
+          "<thead><tr><th>时间</th><th>版本号</th><th>操作人</th><th style=\"width:110px\">对比当前</th></tr></thead><tbody>" +
+          list.map(v =>
+            "<tr><td class='muted' style='white-space:nowrap'>" + v.created_at + "</td>" +
+            "<td><span class='tag blue'>" + esc(v.version) + "</span></td>" +
+            "<td>" + esc(v.created_by || "-") + "</td>" +
+            '<td><button class="btn btn-ghost btn-sm" data-diff="' + v.id + '">查看差异</button></td></tr>').join("") +
+          "</tbody></table></div></div>" +
+          '<div id="vdiff-result" style="margin-top:14px"></div>'
+        : '<div class="empty">' + ICONS.empty + "<p>该接口创建于版本快照功能上线前，暂无历史快照<br>下次保存修改后将自动记录</p></div>") +
+    "</div>" +
+    '<div class="modal-foot"><button class="btn btn-primary" data-close>关闭</button></div>', { width: 640 });
+  mask.querySelectorAll("[data-diff]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const r = await api("/api/admin/apis/" + a.id + "/versions/" + b.dataset.diff + "/diff", { silent: true });
+      const box = mask.querySelector("#vdiff-result");
+      box.innerHTML = r.diff.length
+        ? '<b style="font-size:13px">与当前版本的差异（快照 ' + esc(r.snapshot_version) + " · " + esc(r.snapshot_at) + '）</b>' +
+          '<div class="card" style="box-shadow:none;overflow:hidden;margin-top:8px"><div class="table-wrap"><table class="table" style="font-size:12.5px">' +
+          "<thead><tr><th style=\"width:110px\">字段</th><th>快照值</th><th>当前值</th></tr></thead><tbody>" +
+          r.diff.map(x =>
+            '<tr><td class="mono" style="font-family:Consolas,monospace;font-weight:600">' + esc(x.field) + "</td>" +
+            '<td style="background:#fff7f7;color:#b91c1c;font-family:Consolas,monospace;font-size:11.5px;word-break:break-all">' + esc(x.old) + "</td>" +
+            '<td style="background:#f0fdf4;color:#15803d;font-family:Consolas,monospace;font-size:11.5px;word-break:break-all">' + esc(x.new) + "</td></tr>").join("") +
+          "</tbody></table></div></div>"
+        : '<div class="card" style="box-shadow:none;padding:12px;text-align:center;color:var(--text-3);font-size:12.5px;margin-top:8px">该快照与当前版本无差异</div>';
+    }));
+}
+
+function apiModal(a, presetType) {
+  paramRows = a ? JSON.parse(JSON.stringify(a.params || [])) : [];
+  const initType = a ? a.api_type : (presetType || "custom");
+  const cateOpts = window._cateList || [];
+  const mask = openModal(
+    '<div class="modal-head"><b>' + (a ? "编辑接口" : "新建接口") + '</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="form-row">' +
+        '<div class="form-item"><label>接口类型</label><select class="select" id="m-type">' +
+          '<option value="custom"' + (initType === "custom" ? " selected" : "") + '>自定义接口（Mock 返回）</option>' +
+          '<option value="builtin"' + (initType === "builtin" ? " selected" : "") + '>内置服务（系统真实执行）</option>' +
+          '<option value="plugin"' + (initType === "plugin" ? " selected" : "") + '>插件接口（运行 Python 代码）</option>' +
+          '<option value="external"' + (initType === "external" ? " selected" : "") + '>外部接口（转发第三方服务）</option>' +
+        "</select></div>" +
+        '<div class="form-item"><label>鉴权方式</label><select class="select" id="m-auth">' +
+          '<option value="login"' + (!a || a.auth_type !== "open" ? " selected" : "") + '>需登录（凭专属 token 调用）</option>' +
+          '<option value="open"' + (a && a.auth_type === "open" ? " selected" : "") + '>免登录（完全开放）</option>' +
+        "</select></div>" +
+      "</div>" +
+      '<div class="form-item" id="m-handler-row" style="display:none">' +
+        '<label>服务能力模板<span class="req">*</span></label><select class="select" id="m-handler">' +
+          '<option value="">请选择要上架的内置服务…</option>' +
+          Object.entries(BUILTIN_TEMPLATES).map(([k, t]) => '<option value="' + k + '"' + (a && a.handler === k ? " selected" : "") + ">" + t.label + "</option>").join("") +
+        '</select><div class="tip">选择后将自动填入名称、方法、路径与参数定义</div></div>' +
+      '<div class="form-item" id="m-plugin-row" style="display:none">' +
+        '<label>插件代码（Python）<span class="req">*</span></label>' +
+        '<div id="m-plugin-editor"></div>' +
+        '<div class="tip">约定：定义 <span class="kbd">handler(query, body, ip)</span>，返回 dict 或 (状态码, dict)。可用 json / re / random / secrets / string / hashlib / math / datetime，独立子进程执行，超时 8 秒自动终止。Tab 键缩进，支持 <span class="kbd">Shift+Tab</span> 反缩进。 <a id="m-plugin-sample" style="cursor:pointer;font-weight:600">插入示例模板</a></div>' +
+        '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost btn-sm" id="m-plugin-trial" type="button">🧪 试跑这段代码</button><span class="muted" style="align-self:center">用下方参数执行一次，不写入调用日志</span></div>' +
+        '<div id="m-plugin-result" style="margin-top:10px"></div>' +
+      "</div>" +
+      '<div class="form-item" id="m-req-row" style="display:none">' +
+        '<label>依赖声明</label>' +
+        '<input class="input" id="m-requires" style="font-family:Consolas,monospace" placeholder="requests, python-dateutil（逗号分隔）" value="' + esc(a?.requires || "") + '">' +
+        '<div class="tip">填写本插件用到的第三方包名（<b>需先在「📦 依赖管理」中安装</b>）。声明后插件代码即可 import 使用；留空则只能使用标准库。' +
+          ' <a id="m-req-detect" style="cursor:pointer;font-weight:600">从代码中检测</a></div>' +
+        '<div id="m-req-status" style="margin-top:7px"></div>' +
+      "</div>" +
+      '<div id="m-external-row" style="display:none">' +
+        '<div class="form-item"><label>上游地址<span class="req">*</span></label><input class="input" id="m-upstream" style="font-family:Consolas,monospace" value="' + esc(a?.upstream_url || "") + '" placeholder="https://api.example.com/v1/resource">' +
+        '<div class="tip">网关将按接口定义的方法，把查询参数与请求体实时转发到该地址，并原样回传响应</div></div>' +
+        '<div class="form-item"><label>上游请求头（JSON，可选）</label><textarea class="input" id="m-upstream-headers" rows="2" spellcheck="false" style="font-family:Consolas,monospace;font-size:12px" placeholder=\'{"Authorization": "Bearer 上游令牌"}\'>' + esc(a && a.upstream_headers && a.upstream_headers !== "{}" ? a.upstream_headers : "") + "</textarea></div>" +
+      "</div>" +
+      '<div class="form-row">' +
+        '<div class="form-item"><label>接口名称<span class="req">*</span></label><input class="input" id="m-name" value="' + esc(a?.name || "") + '" placeholder="如：查询用户信息"></div>' +
+        '<div class="form-item"><label>所属分类<span class="req">*</span></label><select class="select" id="m-cate">' +
+          cateOpts.map(c => '<option value="' + c.id + '"' + (a && a.category_id === c.id ? " selected" : "") + ">" + esc(c.name) + "</option>").join("") +
+        "</select></div>" +
+      "</div>" +
+      '<div class="form-item"><label>接口图标</label>' +
+        '<input type="hidden" id="m-icon" value="' + esc(a?.icon || "") + '">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<div id="m-icon-preview" style="width:44px;height:44px;border-radius:12px;background:#f2f7ff;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:23px;flex:none">' + esc(a?.icon || "") + "</div>" +
+          '<div style="flex:1">' +
+            '<div id="m-icon-grid" style="display:grid;grid-template-columns:repeat(14,1fr);gap:2px;max-height:96px;overflow-y:auto;padding:4px;background:#f8fbff;border:1px solid var(--line);border-radius:10px"></div>' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-top:7px">' +
+              '<input class="input" id="m-icon-custom" placeholder="粘贴任意 emoji 自定义" maxlength="8" style="height:30px;font-size:14px;width:190px">' +
+              '<button class="btn btn-ghost btn-sm" id="m-icon-clear" type="button">清除</button>' +
+              '<span class="muted" style="font-size:11.5px">图标展示在市场卡片、管理列表与导出文档中</span>' +
+            "</div>" +
+          "</div>" +
+        "</div>" +
+      "</div>" +
+      '<div class="form-row">' +
+        '<div class="form-item"><label>请求方法<span class="req">*</span></label><select class="select" id="m-method">' +
+          METHOD_OPTS.map(m => '<option' + (a && a.method === m ? " selected" : "") + ">" + m + "</option>").join("") +
+        "</select></div>" +
+        '<div class="form-item"><label>请求路径<span class="req">*</span></label><input class="input mono" style="font-family:Consolas,monospace" id="m-path" value="' + esc(a?.path || "") + '" placeholder="/api/v1/..."></div>' +
+      "</div>" +
+      '<div class="form-row">' +
+        '<div class="form-item"><label>版本</label><input class="input" id="m-version" value="' + esc(a?.version || "v1.0.0") + '"></div>' +
+        '<div class="form-item"><label>负责人</label><input class="input" id="m-owner" value="' + esc(a?.owner || "") + '" placeholder="如：平台核心组"></div>' +
+      "</div>" +
+      '<div class="form-row">' +
+        '<div class="form-item"><label>状态</label><select class="select" id="m-status">' +
+          Object.entries(STATUS_META).map(([k, v]) => '<option value="' + k + '"' + (a && a.status === k ? " selected" : !a && k === "online" ? " selected" : "") + ">" + v + "</option>").join("") +
+        "</select></div>" +
+        '<div class="form-item"><label>限流（次/分钟，0 不限）</label><input class="input" id="m-ratelimit" type="number" min="0" value="' + (a ? (a.rate_limit || 0) : 0) + '"><div class="tip">网关按「接口 + 调用方」滑动窗口限流，超出返回 429</div></div>' +
+      "</div>" +
+      '<div class="form-row">' +
+        '<div class="form-item"><label>积分消耗（次）</label><input class="input" id="m-cost" type="number" min="0" value="' + (a ? (a.cost || 0) : 0) + '"><div class="tip">仅成功调用扣费，0 = 免费；<b>免登录接口不可计费</b>（自动置 0）</div></div>' +
+        '<div class="form-item"><label>官网展示</label>' +
+          '<label class="switch" style="margin-top:5px"><input type="checkbox" id="m-featured"' + (!a || a.featured ? " checked" : "") + '><i></i></label>' +
+          '<div class="tip">开启后该接口出现在官网首页的接口广场（仅在线接口）</div></div>' +
+      "</div>" +
+      '<div class="form-item"><label>接口描述</label><input class="input" id="m-desc" value="' + esc(a?.description || "") + '" placeholder="一句话说明接口用途"></div>' +
+      '<div class="form-item"><label>参数定义</label>' +
+        '<div class="card" style="box-shadow:none;background:#f8fafc">' +
+          '<div class="table-wrap"><table class="table params-table" style="font-size:12.5px"><thead><tr>' +
+            "<th>参数名</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th><th style='width:40px'></th>" +
+          '</tr></thead><tbody id="m-params"></tbody></table></div>' +
+          '<div style="padding:10px 12px"><button class="btn btn-ghost btn-sm" id="m-add-param" type="button">＋ 添加参数</button></div>' +
+        "</div>" +
+      "</div>" +
+      '<div class="form-item" id="m-mock-wrap"><label>Mock 响应（JSON）</label><textarea class="input" id="m-mock" rows="5" spellcheck="false" style="font-family:Consolas,monospace;font-size:12.5px">' + esc(JSON.stringify((a && a.api_type !== "builtin" ? a.mock_response : null) || { code: 0, message: "ok", data: {} }, null, 2)) + "</textarea></div>" +
+      '<div class="form-item" id="m-builtin-tip" style="display:none;background:#ecfeff;border:1px solid #cff5fb;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#0891b2;line-height:1.8">💡 内置服务由平台网关<b>真实执行</b>，无需配置 Mock 响应；调用记录、鉴权拦截与统计自动生效。</div>' +
+    "</div>" +
+    '<div class="modal-foot">' +
+      (a ? '<button class="btn btn-ghost" id="m-versions" style="margin-right:auto">🕘 版本历史</button>' : "") +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="m-save">' + (a ? "保存修改" : "创建接口") + "</button>" +
+    "</div>", { width: 680 });
+
+  // 插件代码编辑器（行号 + Tab 缩进 + 复制）
+  const pluginEditor = createCodeEditor(mask.querySelector("#m-plugin-editor"), {
+    value: (a && a.plugin_code) || PLUGIN_SAMPLE, rows: 14
+  });
+
+  const renderParams = () => {
+    document.getElementById("m-params").innerHTML = paramRows.length ? paramRows.map((p, i) =>
+      "<tr>" +
+        '<td><input class="input" value="' + esc(p.name) + '" data-pi="' + i + '" data-pf="name" placeholder="参数名"></td>' +
+        '<td><select class="select" data-pi="' + i + '" data-pf="position">' + PARAM_POS.map(x => "<option" + (p.position === x ? " selected" : "") + ">" + x + "</option>").join("") + "</select></td>" +
+        '<td><select class="select" data-pi="' + i + '" data-pf="type">' + PARAM_TYPES.map(x => "<option" + (p.type === x ? " selected" : "") + ">" + x + "</option>").join("") + "</select></td>" +
+        '<td style="text-align:center"><input type="checkbox" data-pi="' + i + '" data-pf="required"' + (p.required ? " checked" : "") + ' style="accent-color:var(--primary);width:15px;height:15px"></td>' +
+        '<td><input class="input" value="' + esc(p.description || "") + '" data-pi="' + i + '" data-pf="description" placeholder="参数说明"></td>' +
+        '<td><button class="param-row-del" data-prm="' + i + '" type="button">✕</button></td>' +
+      "</tr>").join("")
+      : '<tr><td colspan="6" style="text-align:center;color:var(--text-3);font-size:12px;padding:14px">暂无参数，点击下方按钮添加</td></tr>';
+    document.querySelectorAll("#m-params [data-pi]").forEach(el => {
+      el.addEventListener(el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input", () => {
+        const i = Number(el.dataset.pi), f = el.dataset.pf;
+        paramRows[i][f] = el.type === "checkbox" ? (el.checked ? 1 : 0) : el.value;
+      });
+    });
+    document.querySelectorAll("#m-params [data-prm]").forEach(b =>
+      b.addEventListener("click", () => { paramRows.splice(Number(b.dataset.prm), 1); renderParams(); }));
+  };
+  renderParams();
+  mask.querySelector("#m-add-param").addEventListener("click", () => {
+    paramRows.push({ name: "", position: "query", type: "string", required: 0, description: "" });
+    renderParams();
+  });
+
+  const typeSel = mask.querySelector("#m-type");
+  const authSel = mask.querySelector("#m-auth");
+  const handlerRow = mask.querySelector("#m-handler-row");
+  const handlerSel = mask.querySelector("#m-handler");
+  const mockWrap = mask.querySelector("#m-mock-wrap");
+  const builtinTip = mask.querySelector("#m-builtin-tip");
+  const pluginRow = mask.querySelector("#m-plugin-row");
+  const externalRow = mask.querySelector("#m-external-row");
+  const reqRow = mask.querySelector("#m-req-row");
+  const costInput = mask.querySelector("#m-cost");
+  // 免登录接口不可计费：自动置 0 并禁用输入
+  const syncCostEnabled = () => {
+    const isOpen = authSel.value === "open";
+    costInput.disabled = isOpen;
+    costInput.parentElement.querySelector(".tip").innerHTML = isOpen
+      ? '<b style="color:var(--warning)">免登录接口无法归属扣费账户，不可设置积分消耗</b>'
+      : "仅成功调用扣费，0 = 免费";
+    if (isOpen) costInput.value = 0;
+  };
+  authSel.addEventListener("change", syncCostEnabled);
+  syncCostEnabled();
+  const syncType = () => {
+    const t = typeSel.value;
+    handlerRow.style.display = t === "builtin" ? "" : "none";
+    mockWrap.style.display = t === "custom" ? "" : "none";
+    builtinTip.style.display = t === "builtin" ? "" : "none";
+    pluginRow.style.display = t === "plugin" ? "" : "none";
+    reqRow.style.display = t === "plugin" ? "" : "none";
+    externalRow.style.display = t === "external" ? "" : "none";
+    if (t === "plugin") refreshReqStatus();
+  };
+  typeSel.addEventListener("change", () => {
+    syncType();
+    if (typeSel.value === "builtin") authSel.value = "login";
+  });
+  mask.querySelector("#m-plugin-sample").addEventListener("click", () => {
+    pluginEditor.setValue(PLUGIN_SAMPLE);
+  });
+
+  /* ---- 接口图标选择器 ---- */
+  const ICON_PRESETS = ["🔌","👤","🔐","📝","💳","🧾","↩️","📊","🔍","📤","💬","📧","🔔","🤖",
+    "🧠","📷","✨","📍","🗺️","⛅","🕐","🔑","🎲","🌐","🔁","✅","📜","🔒","📏","⚖️","🔲","🧩",
+    "🔗","⚙️","🚀","📦","💡","🎯","📈","📉","🗓️","⏰","🧮","🛒","🚚","💳","🏦","💊","🏥","🎓",
+    "🎬","🎵","📱","💻","🖥️","🛡️","🔥","⭐"];
+  const iconInput = mask.querySelector("#m-icon");
+  const iconPreview = mask.querySelector("#m-icon-preview");
+  const iconGrid = mask.querySelector("#m-icon-grid");
+  iconGrid.innerHTML = ICON_PRESETS.map(ic =>
+    '<button type="button" data-icon="' + ic + '" style="border:none;background:transparent;cursor:pointer;font-size:17px;padding:3px;border-radius:6px;line-height:1">' + ic + "</button>").join("");
+  const setIcon = ic => {
+    iconInput.value = ic || "";
+    iconPreview.textContent = ic || "";
+    iconPreview.style.background = ic ? "#e8f2ff" : "#f2f7ff";
+    iconGrid.querySelectorAll("[data-icon]").forEach(b =>
+      b.style.background = b.dataset.icon === ic ? "#cfe3ff" : "transparent");
+  };
+  iconGrid.addEventListener("click", e => {
+    const b = e.target.closest("[data-icon]");
+    if (b) setIcon(b.dataset.icon);
+  });
+  mask.querySelector("#m-icon-custom").addEventListener("input", e => {
+    setIcon(e.target.value.trim().slice(0, 8));
+  });
+  mask.querySelector("#m-icon-clear").addEventListener("click", () => {
+    setIcon("");
+    mask.querySelector("#m-icon-custom").value = "";
+  });
+  setIcon(a?.icon || "");
+
+  /* ---- 依赖声明：检测 + 缺失提示 ---- */
+  const STD_MODULES = new Set(["json", "re", "math", "random", "datetime", "string", "secrets",
+    "hashlib", "time", "collections", "itertools", "functools", "decimal", "fractions",
+    "statistics", "urllib", "base64", "uuid", "textwrap", "unicodedata", "calendar", "io"]);
+
+  function detectImports(code) {
+    const found = new Set();
+    (code || "").split("\n").forEach(line => {
+      let m = line.match(/^\s*from\s+([\w.]+)\s+import/) || line.match(/^\s*import\s+([\w.,\s]+)/);
+      if (!m) return;
+      (m[1] || "").split(",").forEach(part => {
+        const top = part.trim().split(".")[0];
+        if (top && !STD_MODULES.has(top)) found.add(top);
+      });
+    });
+    return [...found];
+  }
+
+  async function refreshReqStatus() {
+    const box = mask.querySelector("#m-req-status");
+    if (!box) return;
+    const code = pluginEditor ? pluginEditor.getValue() : "";
+    const imported = detectImports(code);
+    if (!imported.length) { box.innerHTML = '<span class="muted" style="font-size:11.5px">未检测到第三方 import</span>'; return; }
+    let installedDeps = [];
+    try { installedDeps = (await api("/api/admin/deps", { silent: true })).items || []; }
+    catch (e) { return; }
+    const installedSet = new Set(installedDeps.map(d => d.name.toLowerCase().replace(/[-.]/g, "_")));
+    const declared = new Set((mask.querySelector("#m-requires").value || "")
+      .split(/[,，\s]+/).map(x => x.trim().toLowerCase().replace(/[-.]/g, "_")).filter(Boolean));
+    const rows = imported.map(mod => {
+      const isInstalled = installedSet.has(mod.toLowerCase().replace(/[-.]/g, "_"));
+      const isDeclared = declared.has(mod.toLowerCase().replace(/[-.]/g, "_"));
+      if (!isInstalled)
+        return '<span class="tag red" style="margin-right:6px"><i class="dot"></i>' + esc(mod) + " 未安装</span>";
+      if (!isDeclared)
+        return '<span class="tag amber" style="margin-right:6px"><i class="dot"></i>' + esc(mod) + " 未声明</span>";
+      return '<span class="tag green" style="margin-right:6px"><i class="dot"></i>' + esc(mod) + "</span>";
+    }).join("");
+    box.innerHTML = '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:5px">代码 import 检测：</div>' + rows;
+  }
+
+  mask.querySelector("#m-req-detect").addEventListener("click", () => {
+    const code = pluginEditor ? pluginEditor.getValue() : "";
+    const imported = detectImports(code);
+    const cur = (mask.querySelector("#m-requires").value || "").split(/[,，\s]+/).filter(Boolean);
+    const merged = [...new Set([...cur, ...imported])];
+    mask.querySelector("#m-requires").value = merged.join(", ");
+    toast(imported.length ? "已填入 " + imported.length + " 个检测到的包" : "未检测到第三方 import", imported.length ? "success" : "info");
+    refreshReqStatus();
+  });
+  mask.querySelector("#m-requires").addEventListener("input", refreshReqStatus);
+  pluginEditor.el.addEventListener("input", debounce(refreshReqStatus, 600));
+
+  // 插件在线试跑
+  mask.querySelector("#m-plugin-trial").addEventListener("click", async () => {
+    const code = pluginEditor.getValue();
+    if (!code.trim()) { toast("请先编写插件代码", "warn"); return; }
+    const query = {}, body = {};
+    (paramRows || []).forEach(p => {
+      if (!p.name) return;
+      const v = p.name === "text" ? "hello 插件" : p.type === "integer" || p.type === "number" ? "1" : "test";
+      if (p.position === "query" || p.position === "path") query[p.name] = v;
+      else body[p.name] = v;
+    });
+    const btn = mask.querySelector("#m-plugin-trial");
+    const box = mask.querySelector("#m-plugin-result");
+    btn.disabled = true; btn.textContent = "⏳ 执行中…";
+    try {
+      const r = await api("/api/admin/plugins/test",
+        { method: "POST", body: { code, query, body, func: "handler",
+          requires: (mask.querySelector("#m-requires").value || "").trim() } });
+      box.innerHTML =
+        '<div class="resp-meta">' + codePill(r.status_code) +
+        '<span class="tag ' + (r.status_code === 200 ? "green" : "amber") + '"><i class="dot"></i>试跑结果</span>' +
+        '<span class="tag gray">耗时 ' + r.latency_ms + " ms</span>" +
+        '<span class="tag cyan">子进程沙箱</span></div>' +
+        '<div class="json-view ' + (r.status_code === 200 ? "ok" : "bad") + '">' + highlightJSON(r.body) + "</div>";
+    } catch (e) { /* toast 已提示 */ }
+    finally { btn.disabled = false; btn.textContent = "🧪 试跑这段代码"; }
+  });
+  handlerSel.addEventListener("change", () => {
+    const t = BUILTIN_TEMPLATES[handlerSel.value];
+    if (!t) return;
+    mask.querySelector("#m-name").value = t.name;
+    mask.querySelector("#m-method").value = t.method;
+    mask.querySelector("#m-path").value = t.path;
+    mask.querySelector("#m-desc").value = t.desc;
+    mask.querySelector("#m-owner").value = t.owner;
+    mask.querySelector("#m-status").value = "online";
+    authSel.value = t.auth;
+    paramRows = JSON.parse(JSON.stringify(t.params));
+    renderParams();
+  });
+  syncType();
+
+  const versionsBtn = mask.querySelector("#m-versions");
+  if (versionsBtn) versionsBtn.addEventListener("click", () => { mask.close(); versionHistoryModal(a); });
+
+  mask.querySelector("#m-save").addEventListener("click", async () => {
+    const t = typeSel.value;
+    const body = {
+      name: mask.querySelector("#m-name").value.trim(),
+      category_id: Number(mask.querySelector("#m-cate").value),
+      method: mask.querySelector("#m-method").value,
+      path: mask.querySelector("#m-path").value.trim(),
+      version: mask.querySelector("#m-version").value.trim() || "v1.0.0",
+      owner: mask.querySelector("#m-owner").value.trim(),
+      status: mask.querySelector("#m-status").value,
+      rate_limit: Number(mask.querySelector("#m-ratelimit").value || 0),
+      cost: authSel.value === "open" ? 0 : Number(mask.querySelector("#m-cost").value || 0),
+      featured: mask.querySelector("#m-featured").checked ? 1 : 0,
+      description: mask.querySelector("#m-desc").value.trim(),
+      api_type: t,
+      auth_type: authSel.value,
+      handler: t === "builtin" ? handlerSel.value : "",
+      plugin_code: t === "plugin" ? pluginEditor.getValue() : "",
+      requires: t === "plugin" ? (mask.querySelector("#m-requires").value || "").trim() : "",
+      icon: mask.querySelector("#m-icon").value || "",
+      upstream_url: t === "external" ? mask.querySelector("#m-upstream").value.trim() : "",
+      upstream_headers: t === "external" ? (mask.querySelector("#m-upstream-headers").value.trim() || "{}") : "{}",
+      params: paramRows.filter(p => p.name.trim()),
+      mock_response: t === "custom" ? mask.querySelector("#m-mock").value : "{}"
+    };
+    if (!body.name || !body.path) { toast("请填写接口名称与请求路径", "warn"); return; }
+    if (t === "builtin" && !body.handler) { toast("请选择要上架的内置服务", "warn"); return; }
+    if (t === "plugin" && !body.plugin_code.trim()) { toast("请编写插件代码", "warn"); return; }
+    if (t === "external" && !body.upstream_url) { toast("请填写第三方上游地址", "warn"); return; }
+    try {
+      if (a) { await api("/api/admin/apis/" + a.id, { method: "PUT", body }); toast("接口已更新"); }
+      else { await api("/api/admin/apis", { method: "POST", body }); toast("接口创建成功"); }
+      mask.close();
+      loadApis();
+    } catch (e) { /* toast 已提示 */ }
+  });
+}
+
+/* ==================== 插件管理 ==================== */
+function bindPluginsView() {
+  document.getElementById("btn-plugin-new").addEventListener("click", () => apiModal(null, "plugin"));
+  document.getElementById("btn-dep-manage").addEventListener("click", depModal);
+  document.getElementById("dep-panel").addEventListener("click", e => {
+    if (e.target.closest("#dep-panel-close")) { depPanelOpen = false; renderDepPanel(); }
+    if (e.target.closest("#dep-quick")) depModal();
+  });
+  document.getElementById("plugin-grid").addEventListener("click", async e => {
+    const ed = e.target.closest("[data-pedit]"), dl = e.target.closest("[data-pdel]"), add = e.target.closest("#plugin-add-card");
+    if (add) return apiModal(null, "plugin");
+    if (ed) return apiModal(JSON.parse(ed.dataset.pedit));
+    if (dl) {
+      const p = JSON.parse(dl.dataset.pdel);
+      const ok = await confirmDialog("删除插件", "确定删除插件 <b>" + esc(p.name) + "</b> 吗？<br><span style='color:var(--text-3);font-size:12px'>插件代码将被移除，已分发的调用地址立即失效。</span>");
+      if (!ok) return;
+      try { await api("/api/admin/apis/" + p.id, { method: "DELETE" }); toast("插件已删除"); loadPlugins(); } catch (err) {}
+    }
+  });
+  document.getElementById("plugin-grid").addEventListener("change", async e => {
+    const sw = e.target.closest("[data-api-switch]");
+    if (!sw) return;
+    const p = JSON.parse(sw.dataset.apiSwitch);
+    const status = sw.checked ? "online" : "offline";
+    try {
+      await api("/api/admin/apis/" + p.id + "/status", { method: "PATCH", body: { status } });
+      toast("「" + p.name + "」已" + (sw.checked ? "上架（在线）" : "下线"), "success");
+      loadPlugins();
+    } catch (err) { sw.checked = !sw.checked; }
+  });
+}
+
+/* ==================== 插件依赖管理 ==================== */
+let depData = null;      // {items, common, pending}
+let depPanelOpen = false;
+let depPolling = null;
+
+async function loadDeps(silent) {
+  try { depData = await api("/api/admin/deps", { silent: true }); }
+  catch (e) { depData = null; return; }
+  renderDepPanel();
+  // 有安装中的作业时轮询进度
+  const pending = (depData && depData.pending) || [];
+  if (pending.length && !depPolling) {
+    depPolling = setInterval(async () => {
+      try {
+        depData = await api("/api/admin/deps", { silent: true });
+        renderDepPanel();
+        if (!((depData && depData.pending) || []).length) {
+          clearInterval(depPolling); depPolling = null;
+          toast("依赖安装完成", "success");
+          loadDeps();
+        }
+      } catch (e) { clearInterval(depPolling); depPolling = null; }
+    }, 3000);
+  }
+}
+
+function renderDepPanel() {
+  const box = document.getElementById("dep-panel");
+  if (!depData) { box.innerHTML = ""; return; }
+  const installed = depData.items || [];
+  if (!installed.length && !depPanelOpen) {
+    box.innerHTML = '<div class="card section-gap" style="padding:14px 18px;display:flex;align-items:center;gap:12px">' +
+      '<span style="font-size:17px">📦</span>' +
+      '<div style="flex:1;font-size:12.5px;color:var(--text-2);line-height:1.7">' +
+        '插件默认只能使用标准库。若插件代码需要 <b>requests / numpy</b> 等第三方包，' +
+        '先在此安装，再在插件的「依赖声明」中填写。</div>' +
+      '<button class="btn btn-ghost btn-sm" id="dep-quick">打开依赖管理</button></div>';
+    return;
+  }
+  const chips = installed.map(d =>
+    '<span class="tag ' + (d.status === "installed" ? "blue" : "red") + '" style="padding:5px 11px;font-size:12px">' +
+      '<i class="dot"></i>' + esc(d.name) +
+      (d.installed_version ? ' <b style="font-weight:600">' + esc(d.installed_version) + "</b>" : "") +
+      (d.status !== "installed" ? " · " + esc((d.message || "失败").slice(0, 40)) : "") +
+    "</span>").join("");
+  const pendingChips = (depData.pending || []).map(p =>
+    '<span class="tag amber" style="padding:5px 11px;font-size:12px"><i class="dot pulse"></i>' +
+      esc(p.name) + " 安装中…</span>").join("");
+  box.innerHTML =
+    '<div class="card section-gap" style="padding:14px 18px">' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<b style="font-size:13.5px">📦 已安装依赖</b>' +
+        '<span class="muted">' + installed.length + " 个</span>" +
+        '<div class="flex" style="margin-left:auto">' +
+          '<button class="btn btn-ghost btn-sm" id="dep-quick">管理 / 安装</button>' +
+          '<button class="btn btn-ghost btn-sm" id="dep-panel-close" title="收起">✕</button>' +
+        "</div>" +
+      "</div>" +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">' +
+        (chips + pendingChips || '<span class="muted">暂无已安装依赖</span>') +
+      "</div>" +
+    "</div>";
+}
+
+function depModal() {
+  const d = depData || { items: [], common: [], pending: [] };
+  const installed = new Set((d.items || []).map(x => x.name.toLowerCase()));
+  const mask = openModal(
+    '<div class="modal-head"><b>插件依赖管理</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div style="background:#eff6ff;border:1px solid #d4e6fd;border-radius:11px;padding:11px 14px;font-size:12.5px;color:#1d4ed8;line-height:1.8;margin-bottom:14px">' +
+        '安装的依赖对<b>所有插件</b>生效（全局安装）。装好后，在插件编辑的「依赖声明」中填写包名即可 import。' +
+        '沙箱始终禁止直接使用 <span class="kbd">os / sys / subprocess / socket</span> 等系统模块。</div>' +
+      '<div class="form-item"><label>安装新依赖</label>' +
+        '<div style="display:flex;gap:8px">' +
+          '<input class="input" id="dep-name" placeholder="包名，如 requests">' +
+          '<button class="btn btn-primary" id="dep-install" style="flex:none;width:96px">安装</button>' +
+        "</div>" +
+        '<div class="tip">仅支持 PyPI 包名，不支持 URL / 本地路径 / 版本限定符安装。大包（numpy、pandas）安装较慢，请耐心等待。</div></div>' +
+      (d.items && d.items.length
+        ? '<div class="form-item"><label>已安装（' + d.items.length + '）</label>' +
+          '<div class="card" style="box-shadow:none;overflow:hidden"><div class="table-wrap"><table class="table" style="font-size:12.5px">' +
+          "<thead><tr><th>包名</th><th>版本</th><th>状态</th><th>安装者</th><th style=\"width:80px\">操作</th></tr></thead><tbody>" +
+          (d.items || []).map(function (x) {
+            return "<tr><td class='mono' style='font-family:Consolas,monospace;font-weight:600'>" + esc(x.name) + "</td>" +
+              "<td class='muted'>" + esc(x.installed_version || "-") + "</td>" +
+              "<td>" + (x.status === "installed"
+                ? '<span class="tag green"><i class="dot"></i>可用</span>'
+                : '<span class="tag red" title="' + esc((x.message || "").slice(0, 200)) + '"><i class="dot"></i>失败</span>') + "</td>" +
+              "<td class='muted'>" + esc(x.requested_by || "-") + "</td>" +
+              '<td><button class="btn btn-danger btn-sm" data-depdel="' + esc(x.name) + '">卸载</button></td></tr>';
+          }).join("") +
+          "</tbody></table></div></div></div>"
+        : '<div class="card" style="box-shadow:none;padding:18px;text-align:center;color:var(--text-3);font-size:12.5px;margin-bottom:14px">尚未安装任何依赖，插件可直接使用标准库（json / re / math / random / datetime 等）</div>') +
+      '<div class="form-item" style="margin-bottom:0"><label>常用依赖（点击快速安装）</label>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+          (d.common || []).map(([n, desc]) =>
+            '<button class="chip" data-quick="' + esc(n) + '" title="' + esc(desc) + '"' +
+              (installed.has(n.toLowerCase()) ? ' style="opacity:.5"' : "") + ">" +
+              (installed.has(n.toLowerCase()) ? "✓ " : "＋ ") + esc(n) + "</button>").join("") +
+        "</div></div>" +
+    "</div>" +
+    '<div class="modal-foot"><button class="btn btn-primary" data-close>完成</button></div>',
+    { width: 620 });
+
+  const doInstall = async name => {
+    if (!name) { toast("请填写包名", "warn"); return; }
+    const btn = mask.querySelector("#dep-install");
+    btn.disabled = true; btn.textContent = "提交中…";
+    try {
+      await api("/api/admin/deps/install", { method: "POST", body: { name } });
+      toast("安装任务已提交，请稍候…", "info", 2500);
+      mask.close();
+      loadDeps();
+    } catch (e) { btn.disabled = false; btn.textContent = "安装"; }
+  };
+  mask.querySelector("#dep-install").addEventListener("click", () =>
+    doInstall(mask.querySelector("#dep-name").value.trim()));
+  mask.querySelector("#dep-name").addEventListener("keydown", e => {
+    if (e.key === "Enter") doInstall(mask.querySelector("#dep-name").value.trim());
+  });
+  mask.querySelectorAll("[data-quick]").forEach(b =>
+    b.addEventListener("click", () => doInstall(b.dataset.quick)));
+  mask.querySelectorAll("[data-depdel]").forEach(b =>
+    b.addEventListener("click", async () => {
+      const n = b.dataset.depdel;
+      const ok = await confirmDialog("卸载依赖", "确定卸载依赖 <b>" + esc(n) + "</b> 吗？<br><span style='color:var(--text-3);font-size:12px'>引用该依赖的插件将运行失败。</span>");
+      if (!ok) return;
+      try {
+        await api("/api/admin/deps/" + encodeURIComponent(n), { method: "DELETE" });
+        toast("依赖已卸载"); mask.close(); loadDeps();
+      } catch (e) {}
+    }));
+}
+
+async function loadPlugins() {
+  const d = await api("/api/admin/apis?page=1&page_size=100", { silent: true });
+  const list = d.items.filter(x => x.api_type === "plugin");
+  const preview = code => {
+    const lines = code.split("\n");
+    return lines.slice(0, 7).join("\n") + (lines.length > 7 ? "\n…" : "");
+  };
+  document.getElementById("plugin-grid").innerHTML = list.map(p =>
+    '<div class="card" style="padding:16px 18px;display:flex;flex-direction:column">' +
+      '<div class="flex">' + methodBadge(p.method) +
+        (p.icon ? '<span style="font-size:17px">' + esc(p.icon) + "</span>" : "") +
+        '<b style="font-size:14.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(p.name) + "</b>" +
+        '<label class="switch" title="一键上架/下线"><input type="checkbox" data-api-switch=\'' +
+        esc(JSON.stringify({ id: p.id, name: p.name })) + "'" + (p.status === "online" ? " checked" : "") + '><i></i></label></div>' +
+      '<div class="api-path" style="margin-top:8px">' + esc(p.path) + "</div>" +
+      '<pre class="code-block" style="margin-top:10px;padding:11px 13px;font-size:11.5px;line-height:1.65;overflow:hidden;flex:1;white-space:pre-wrap;word-break:break-all">' + esc(preview(p.plugin_code || "")) + "</pre>" +
+      '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px">' +
+        (p.requires
+          ? p.requires.split(/[,，\s]+/).filter(Boolean).map(r =>
+              '<span class="tag blue" title="依赖声明"><i class="dot"></i>' + esc(r) + "</span>").join("")
+          : "") +
+      "</div>" +
+      '<div style="display:flex;align-items:center;gap:8px;margin-top:12px">' +
+        authTypeTag(p.auth_type) +
+        '<span class="muted">调用 ' + fmtFull(p.call_count) + " 次</span>" +
+        '<div class="actions" style="margin-left:auto">' +
+          '<button class="btn btn-ghost btn-sm" data-pedit=\'' + esc(JSON.stringify(p)) + "\'>编辑代码</button>" +
+          '<button class="btn btn-danger btn-sm" data-pdel=\'' + esc(JSON.stringify({ id: p.id, name: p.name })) + "\'>删除</button>" +
+        "</div></div>" +
+    "</div>").join("") +
+    '<div class="card" style="border-style:dashed;display:grid;place-items:center;min-height:220px;cursor:pointer;color:var(--text-3)" id="plugin-add-card">' +
+      '<div style="text-align:center"><div style="font-size:26px">＋</div><div style="font-size:13px;margin-top:6px">新建插件接口</div>' +
+      '<div style="font-size:11.5px;margin-top:4px">编写 Python handler 即可上架分发</div></div></div>';
+}
+
+/* ==================== 分类管理 ==================== */
+const CATE_ICONS = ["📦", "💳", "📊", "🔔", "🤖", "🗺️", "🧩", "🛠️", "📡", "🔐"];
+const CATE_COLORS = ["#e8f2ff/#2e7cf6", "#ecfdf5/#10b981", "#fffbeb/#d97706", "#ffe9f3/#ec4899", "#eff6ff/#2563eb", "#f5f3ff/#8b5cf6", "#ecfeff/#0891b2", "#fff1f2/#f43f5e"];
+
+function bindCategoriesView() {
+  document.getElementById("btn-cate-new").addEventListener("click", () => cateModal(null));
+  document.getElementById("cate-grid").addEventListener("click", cateGridClick);
+}
+
+async function loadCategories() {
+  const d = await api("/api/admin/categories", { silent: true });
+  window._cateList = d.items;
+  document.getElementById("cate-grid").innerHTML = d.items.map((c, i) => {
+    const [bg, fg] = (CATE_COLORS[i % CATE_COLORS.length]).split("/");
+    return '<div class="card cat-card" style="padding:18px">' +
+      '<div class="ops">' +
+        '<button data-cedit=\'' + esc(JSON.stringify(c)) + "' title=\"编辑\">✎</button>" +
+        '<button class="del" data-cdel=\'' + esc(JSON.stringify({ id: c.id, name: c.name })) + "' title=\"删除\">🗑</button>" +
+      "</div>" +
+      '<div class="cat-icon" style="background:' + bg + ";color:" + fg + '">' + CATE_ICONS[i % CATE_ICONS.length] + "</div>" +
+      '<div style="margin-top:12px;font-size:15px;font-weight:700">' + esc(c.name) + "</div>" +
+      '<div class="muted" style="margin-top:5px;line-height:1.7;min-height:36px">' + esc(c.description || "暂无描述") + "</div>" +
+      '<div style="margin-top:12px;display:flex;align-items:center;gap:6px">' +
+        '<span class="tag blue"><i class="dot"></i>' + c.api_count + " 个接口</span>" +
+        '<span class="muted" style="margin-left:auto">ID #' + c.id + "</span>" +
+      "</div></div>";
+  }).join("") +
+  '<div class="card" style="border-style:dashed;display:grid;place-items:center;min-height:180px;cursor:pointer;color:var(--text-3)" id="cate-add-card">' +
+    '<div style="text-align:center"><div style="font-size:26px">＋</div><div style="font-size:13px;margin-top:6px">新建分类</div></div></div>';
+
+}
+
+async function cateGridClick(e) {
+  const ed = e.target.closest("[data-cedit]"), dl = e.target.closest("[data-cdel]"), add = e.target.closest("#cate-add-card");
+  if (add) return cateModal(null);
+  if (ed) return cateModal(JSON.parse(ed.dataset.cedit));
+  if (dl) {
+    const c = JSON.parse(dl.dataset.cdel);
+    const ok = await confirmDialog("删除分类", "确定删除分类 <b>" + esc(c.name) + "</b> 吗？<br><span style='color:var(--text-3);font-size:12px'>仅允许删除空分类，含接口的分类会先被拦截。</span>");
+    if (!ok) return;
+    try { await api("/api/admin/categories/" + c.id, { method: "DELETE" }); toast("分类已删除"); loadCategories(); } catch (err) {}
+  }
+}
+
+function cateModal(c) {
+  const mask = openModal(
+    '<div class="modal-head"><b>' + (c ? "编辑分类" : "新建分类") + '</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="form-item"><label>分类名称<span class="req">*</span></label><input class="input" id="c-name" value="' + esc(c?.name || "") + '" placeholder="如：交易支付"></div>' +
+      '<div class="form-item"><label>分类描述</label><textarea class="input" id="c-desc" rows="3" placeholder="简要说明该分类包含的接口范围">' + esc(c?.description || "") + "</textarea></div>" +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="c-save">' + (c ? "保存修改" : "创建分类") + "</button>" +
+    "</div>", { width: 440 });
+  mask.querySelector("#c-save").addEventListener("click", async () => {
+    const body = { name: mask.querySelector("#c-name").value.trim(), description: mask.querySelector("#c-desc").value.trim() };
+    if (!body.name) { toast("请填写分类名称", "warn"); return; }
+    try {
+      if (c) { await api("/api/admin/categories/" + c.id, { method: "PUT", body }); toast("分类已更新"); }
+      else { await api("/api/admin/categories", { method: "POST", body }); toast("分类创建成功"); }
+      mask.close();
+      loadCategories();
+    } catch (e) {}
+  });
+}
+
+/* ==================== 用户管理 ==================== */
+const userState = { page: 1, pageSize: 8 };
+const AVATAR_COLORS = ["#2e7cf6", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#ec4899", "#14b8a6"];
+
+function bindUsersView() {
+  document.getElementById("user-kw").addEventListener("input", debounce(() => { userState.page = 1; loadUsers(); }));
+  document.getElementById("user-status").addEventListener("change", () => { userState.page = 1; loadUsers(); });
+  document.getElementById("btn-user-new").addEventListener("click", () => userModal(null));
+  document.getElementById("user-tbody").addEventListener("click", e => {
+    const ed = e.target.closest("[data-uedit]"), dl = e.target.closest("[data-udel]");
+    if (ed) userModal(JSON.parse(ed.dataset.uedit));
+    if (dl) deleteUser(JSON.parse(dl.dataset.udel));
+  });
+  document.getElementById("user-tbody").addEventListener("change", async e => {
+    const sw = e.target.closest("[data-user-switch]");
+    if (!sw) return;
+    const u = JSON.parse(sw.dataset.userSwitch);
+    try {
+      await api("/api/admin/users/" + u.id, { method: "PUT", body: { status: sw.checked ? 1 : 0 } });
+      toast("用户 " + u.username + (sw.checked ? " 已启用" : " 已禁用"));
+    } catch (err) { sw.checked = !sw.checked; }
+  });
+}
+
+async function loadUsers() {
+  const kw = document.getElementById("user-kw").value.trim();
+  const status = document.getElementById("user-status").value;
+  const d = await api(`/api/admin/users?keyword=${encodeURIComponent(kw)}&status=${status}&page=${userState.page}&page_size=${userState.pageSize}`, { silent: true });
+  document.getElementById("user-tbody").innerHTML = d.items.length ? d.items.map((u, i) => {
+    const color = AVATAR_COLORS[u.id % AVATAR_COLORS.length];
+    const self = u.username === me.username;
+    return "<tr>" +
+      '<td><div class="flex">' +
+        '<div class="avatar" style="background:' + color + ';width:32px;height:32px;font-size:12px">' + initials(u.nickname) + "</div>" +
+        '<div><div class="cell-main">' + esc(u.nickname) + (self ? ' <span class="tag blue" style="margin-left:4px">我</span>' : "") + '</div><div class="cell-sub mono" style="font-family:Consolas,monospace">@' + esc(u.username) + "</div></div>" +
+      "</div></td>" +
+      "<td>" + (u.role === "admin" ? '<span class="tag purple"><i class="dot"></i>管理员</span>' : '<span class="tag gray"><i class="dot"></i>普通用户</span>') + "</td>" +
+      '<td class="muted">' + esc(u.email || "-") + "</td>" +
+      "<td>" + userStatusSwitch(JSON.stringify({ id: u.id, username: u.username }), u.status, u.username === "admin") + "</td>" +
+      '<td class="muted">' + u.created_at.slice(0, 10) + "</td>" +
+      '<td class="muted">' + (u.last_login ? u.last_login.slice(0, 16) : "从未登录") + "</td>" +
+      '<td><div class="actions">' +
+        '<button class="btn btn-ghost btn-sm" data-uedit=\'' + esc(JSON.stringify(u)) + "\'>编辑</button>" +
+        (u.username === "admin" ? "" : '<button class="btn btn-danger btn-sm" data-udel=\'' + esc(JSON.stringify({ id: u.id, username: u.username })) + "\'>删除</button>") +
+      "</div></td>" +
+    "</tr>";
+  }).join("") : '<tr><td colspan="7"><div class="empty">' + ICONS.empty + "<p>没有匹配的用户</p></div></td></tr>";
+  renderPagination(document.getElementById("user-pager"), d.total, userState.page, userState.pageSize, p => { userState.page = p; loadUsers(); });
+}
+
+function userModal(u) {
+  const mask = openModal(
+    '<div class="modal-head"><b>' + (u ? "编辑用户 · @" + esc(u.username) : "新建用户") + '</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      (u ? "" :
+      '<div class="form-row">' +
+        '<div class="form-item"><label>用户名<span class="req">*</span></label><input class="input mono" id="u-username" style="font-family:Consolas,monospace" placeholder="3-20 位字母数字下划线"></div>' +
+        '<div class="form-item"><label>初始密码<span class="req">*</span></label><input class="input" id="u-password" type="text" placeholder="至少 8 位，含字母与数字"></div>' +
+      "</div>") +
+      '<div class="form-row">' +
+        '<div class="form-item"><label>昵称</label><input class="input" id="u-nickname" value="' + esc(u?.nickname || "") + '"></div>' +
+        '<div class="form-item"><label>角色</label><select class="select" id="u-role">' +
+          '<option value="user"' + (u && u.role === "user" ? " selected" : "") + ">普通用户</option>" +
+          '<option value="admin"' + (u && u.role === "admin" ? " selected" : "") + ">管理员</option>" +
+        "</select></div>" +
+      "</div>" +
+      '<div class="form-item"><label>邮箱</label><input class="input" id="u-email" type="email" value="' + esc(u?.email || "") + '" placeholder="user@corp.cn"></div>' +
+      (u ? '<div class="form-item"><label>重置密码</label><input class="input" id="u-password" type="text" placeholder="留空则不修改密码"><div class="tip">填写后将直接覆盖原密码</div></div>' : "") +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="u-save">' + (u ? "保存修改" : "创建用户") + "</button>" +
+    "</div>", { width: 500 });
+  mask.querySelector("#u-save").addEventListener("click", async () => {
+    const body = {
+      nickname: mask.querySelector("#u-nickname").value.trim(),
+      role: mask.querySelector("#u-role").value,
+      email: mask.querySelector("#u-email").value.trim()
+    };
+    const pwd = mask.querySelector("#u-password").value;
+    try {
+      if (u) {
+        if (pwd) body.password = pwd;
+        await api("/api/admin/users/" + u.id, { method: "PUT", body });
+        toast("用户已更新");
+      } else {
+        body.username = mask.querySelector("#u-username").value.trim();
+        body.password = pwd;
+        await api("/api/admin/users", { method: "POST", body });
+        toast("用户创建成功");
+      }
+      mask.close();
+      loadUsers();
+    } catch (e) {}
+  });
+}
+
+async function deleteUser(u) {
+  const ok = await confirmDialog("删除用户", "确定删除用户 <b>" + esc(u.username) + "</b> 吗？<br><span style='color:var(--text-3);font-size:12px'>该用户的全部 API 密钥将被一并吊销。</span>");
+  if (!ok) return;
+  try {
+    await api("/api/admin/users/" + u.id, { method: "DELETE" });
+    toast("用户已删除");
+    loadUsers();
+  } catch (e) {}
+}
+
+/* ==================== 积分管理（管理员） ==================== */
+const credState = { usersPage: 1, logsPage: 1, pageSize: 10 };
+
+function bindCreditsAdminView() {
+  document.getElementById("cred-kw").addEventListener("input", debounce(() => { credState.usersPage = 1; loadCreditUsers(); }));
+  document.getElementById("btn-cred-adjust").addEventListener("click", creditAdjustModal);
+}
+
+async function loadCreditsAdmin() {
+  // 汇总统计
+  const kw = document.getElementById("cred-kw").value.trim();
+  const q = "keyword=" + encodeURIComponent(kw);
+  const d = await api("/api/admin/credits?" + q + "&page=" + credState.usersPage + "&page_size=" + credState.pageSize, { silent: true });
+  document.getElementById("cred-signin-hint").textContent = d.signin_reward + " 分";
+  document.getElementById("cred-reg-hint").textContent = d.register_gift + " 分";
+  document.getElementById("cred-total").textContent = fmtFull(d.stats.total_credits);
+  document.getElementById("cred-granted").textContent = fmtFull(d.stats.granted);
+  document.getElementById("cred-consumed").textContent = fmtFull(d.stats.consumed);
+  document.getElementById("cred-costed").textContent = d.stats.costed_apis;
+
+  document.getElementById("cred-users").innerHTML = d.items.length ? d.items.map(u =>
+    "<tr>" +
+      '<td><div class="cell-main">' + esc(u.nickname) + '</div><div class="cell-sub" style="font-family:Consolas,monospace">@' + esc(u.username) + "</div></td>" +
+      '<td style="text-align:right"><b style="font-size:15px;font-variant-numeric:tabular-nums;color:' + (u.credits > 0 ? "var(--text)" : "var(--danger)") + '">' + fmtFull(u.credits) + "</b> 分</td>" +
+      '<td class="muted">' + (u.last_checkin ? u.last_checkin : "从未签到") + "</td>" +
+      '<td><button class="btn btn-ghost btn-sm" data-credadj=\'' + esc(JSON.stringify({ id: u.id, name: u.nickname + " @" + u.username, balance: u.credits })) + "\'>充扣</button></td>" +
+    "</tr>").join("") : '<tr><td colspan="4"><div class="empty">' + ICONS.empty + "<p>没有匹配的用户</p></div></td></tr>";
+  renderPagination(document.getElementById("cred-users-pager"), d.total, credState.usersPage, credState.pageSize,
+    p => { credState.usersPage = p; loadCreditsAdmin(); });
+
+  // 流水
+  const lg = await api("/api/admin/credits/logs?page=" + credState.logsPage + "&page_size=" + credState.pageSize, { silent: true });
+  document.getElementById("cred-logs").innerHTML = lg.items.length ? lg.items.map(l =>
+    "<tr>" +
+      '<td class="muted" style="white-space:nowrap;font-size:11.5px">' + l.created_at.slice(5, 16) + "</td>" +
+      '<td><b style="font-size:12px">' + esc(l.nickname || "-") + '</b> <span style="font-family:Consolas,monospace;font-size:11px;color:var(--text-3)">@' + esc(l.username || "-") + "</span></td>" +
+      '<td><b style="color:' + (l.change > 0 ? "var(--success)" : "var(--danger)") + ';font-variant-numeric:tabular-nums">' + (l.change > 0 ? "+" : "") + l.change + "</b></td>" +
+      '<td class="num">' + l.balance + "</td>" +
+      '<td class="muted" style="font-size:11.5px">' + esc(l.reason || "-") + "</td>" +
+    "</tr>").join("") : '<tr><td colspan="5"><div class="empty">' + ICONS.empty + "<p>暂无流水</p></div></td></tr>";
+  renderPagination(document.getElementById("cred-logs-pager"), lg.total, credState.logsPage, credState.pageSize,
+    p => { credState.logsPage = p; loadCreditsAdmin(); });
+
+  document.querySelectorAll("#cred-users [data-credadj]").forEach(b =>
+    b.addEventListener("click", () => creditAdjustModal(JSON.parse(b.dataset.credadj))));
+}
+
+function creditAdjustModal(pre) {
+  const mask = openModal(
+    '<div class="modal-head"><b>积分充值 / 扣减</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="form-item"><label>目标用户<span class="req">*</span></label><select class="select" id="ca-user"></select></div>' +
+      '<div class="form-row">' +
+        '<div class="form-item"><label>变动数量<span class="req">*</span></label><input class="input" id="ca-amount" type="number" placeholder="正数充值，负数扣减">' +
+          '<div class="tip">扣减不会把余额扣成负数（最多扣到 0）</div></div>' +
+        '<div class="form-item"><label>事由</label><input class="input" id="ca-reason" placeholder="如：活动赠送 / 违规扣减"></div>' +
+      "</div>" +
+      (pre ? '<div class="muted" style="font-size:12px">当前余额 <b id="ca-bal">' + pre.balance + "</b> 分</div>" : "") +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="ca-save">确认</button>' +
+    "</div>", { width: 460 });
+  // 用户下拉（含搜索过滤简单实现：全部列出）
+  api("/api/admin/keys/users", { silent: true }).then(d => {
+    const sel = mask.querySelector("#ca-user");
+    sel.innerHTML = d.items.map(u =>
+      '<option value="' + u.id + '"' + (pre && pre.id === u.id ? " selected" : "") + ">" +
+        esc(u.nickname) + " @" + esc(u.username) + (u.status !== 1 ? "（已禁用）" : "") + "</option>").join("");
+  });
+  mask.querySelector("#ca-save").addEventListener("click", async () => {
+    const uid = Number(mask.querySelector("#ca-user").value);
+    const amount = Number(mask.querySelector("#ca-amount").value || 0);
+    const reason = mask.querySelector("#ca-reason").value.trim();
+    if (!amount) { toast("请填写变动数量（非 0）", "warn"); return; }
+    try {
+      const r = await api("/api/admin/credits/adjust", { method: "POST", body: { user_id: uid, amount, reason } });
+      toast("操作成功，余额 " + r.balance + " 分");
+      mask.close();
+      loadCreditsAdmin();
+    } catch (e) { /* toast 已提示 */ }
+  });
+}
+
+/* ==================== 系统设置 ==================== */
+function bindSettingsView() {
+  document.getElementById("btn-set-save").addEventListener("click", saveSettings);
+  document.getElementById("btn-db-test").addEventListener("click", () => dbAction("test"));
+  document.getElementById("btn-db-migrate").addEventListener("click", () => dbAction("migrate"));
+  document.getElementById("btn-up-check").addEventListener("click", updateCheck);
+  document.getElementById("btn-up-apply").addEventListener("click", updateApply);
+  document.getElementById("btn-up-rollback").addEventListener("click", updateRollback);
+}
+
+async function loadSettingsView() {
+  const d = await api("/api/admin/settings", { silent: true });
+  const v = d.values;
+  document.getElementById("set-signin-min").value = v.signin_min;
+  document.getElementById("set-signin-max").value = v.signin_max;
+  document.getElementById("set-register-gift").value = v.register_gift;
+  document.getElementById("set-site-name").value = v.site_name || "";
+  document.getElementById("set-checkin-mode").value = v.checkin_mode || "both";
+  // 数据库卡
+  const db = d.db;
+  document.getElementById("db-current").textContent =
+    db.engine === "mysql" ? "MySQL" : "SQLite";
+  document.getElementById("db-now").innerHTML = db.engine === "mysql"
+    ? "MySQL @ <b>" + esc(db.mysql.host + ":" + db.mysql.port + "/" + db.mysql.database) + "</b>（用户 " + esc(db.mysql.user) + "）"
+    : "SQLite 文件：<span style='font-family:Consolas,monospace'>" + esc(db.sqlite_path) + "</span>";
+  if (db.engine === "sqlite" && !document.getElementById("db-host").value) {
+    document.getElementById("db-host").value = db.mysql.host;
+    document.getElementById("db-port").value = db.mysql.port;
+    document.getElementById("db-user").value = db.mysql.user;
+    document.getElementById("db-name").value = db.mysql.database;
+  }
+  loadUpdateStatus();
+}
+
+/* ==================== 在线更新 ==================== */
+const PHASE_LABEL = { idle: "空闲", downloading: "下载中", verifying: "校验中", backup: "备份中",
+  applying: "替换文件", pip: "安装依赖", done: "完成", failed: "失败", rolled_back: "已回滚", restarting: "重启中" };
+let upPolling = null, upHealthPolling = null;
+
+async function loadUpdateStatus() {
+  const d = await api("/api/admin/update/status", { silent: true });
+  document.getElementById("up-current").textContent = "v" + d.current_version;
+  const phase = d.phase || "idle";
+  document.getElementById("up-phase").textContent = PHASE_LABEL[phase] || phase;
+  document.getElementById("up-phase").className = "tag " +
+    (phase === "done" ? "green" : phase === "idle" ? "gray" :
+     ["failed", "rolled_back"].includes(phase) ? "red" : "amber");
+  if (d.repo) {
+    document.getElementById("up-owner").value = d.repo.owner || "";
+    document.getElementById("up-repo").value = d.repo.repo || "";
+    document.getElementById("up-tag").value = d.repo.tag || "";
+  }
+  const logEl = document.getElementById("up-log");
+  if (d.log && d.log.length) {
+    logEl.style.display = "block";
+    logEl.textContent = d.log.join("\n");
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  // 运行中：轮询
+  const running = !["idle", "done", "failed", "rolled_back"].includes(phase);
+  if (running && !upPolling) {
+    upPolling = setInterval(loadUpdateStatus, 1200);
+  } else if (!running && upPolling) {
+    clearInterval(upPolling); upPolling = null;
+    if (phase === "failed" || phase === "rolled_back") toast("更新" + (PHASE_LABEL[phase] || phase), "error", 4000);
+  }
+  // 重启中：探测健康接口
+  if (phase === "restarting" && !upHealthPolling) {
+    let sec = 0;
+    document.getElementById("up-restart-tip").style.display = "block";
+    upHealthPolling = setInterval(() => {
+      sec += 3;
+      const el = document.getElementById("up-restart-sec");
+      if (el) el.textContent = "（已等待 " + sec + " 秒）";
+      fetch("/health").then(r => {
+        if (r.ok) {
+          clearInterval(upHealthPolling); upHealthPolling = null;
+          toast("更新完成，服务已重启", "success", 3000);
+          setTimeout(() => location.reload(), 800);
+        }
+      }).catch(() => {});
+    }, 3000);
+  }
+  // 可用性
+  document.getElementById("btn-up-apply").disabled = running || phase === "restarting";
+}
+
+async function updateCheck() {
+  const btn = document.getElementById("btn-up-check");
+  btn.disabled = true; btn.textContent = "⏳ 检查中…";
+  try {
+    const r = await api("/api/admin/update/check", { method: "POST", body: {
+      owner: document.getElementById("up-owner").value.trim(),
+      repo: document.getElementById("up-repo").value.trim(),
+      tag: document.getElementById("up-tag").value.trim(),
+      token: document.getElementById("up-token").value,
+    }});
+    const el = document.getElementById("up-result");
+    if (!r.has_package) {
+      el.innerHTML = '<span style="color:var(--danger)">未找到更新包（检查 owner/repo/tag 或网络）</span>';
+    } else if (r.has_update) {
+      el.innerHTML = '发现新版本 <b style="color:var(--primary)">v' + esc(r.remote_version) + "</b>（当前 v" + esc(r.current_version) + "），可应用更新";
+    } else {
+      el.innerHTML = "当前已是最新版本 v" + esc(r.current_version);
+    }
+    loadUpdateStatus();
+  } catch (e) {
+    document.getElementById("up-result").textContent = e.message;
+  } finally { btn.disabled = false; btn.textContent = "🔍 检查更新"; }
+}
+
+async function updateApply() {
+  const ok = await confirmDialog("应用更新",
+    "将从 GitHub 下载更新包并<b>替换应用文件后自动重启服务</b>。<br>" +
+    "<span style='color:var(--text-3);font-size:12px'>更新前自动备份；失败自动回滚。数据库不受影响。</span>",
+    { danger: true, okText: "确认更新" });
+  if (!ok) return;
+  try {
+    await api("/api/admin/update/apply", { method: "POST", body: {} });
+    toast("更新任务已启动", "success");
+    loadUpdateStatus();
+  } catch (e) { /* toast 已提示 */ }
+}
+
+async function updateRollback() {
+  const ok = await confirmDialog("回滚更新", "从最近一次备份恢复应用文件，<b>恢复后需重启服务</b>。确认？");
+  if (!ok) return;
+  try {
+    const r = await api("/api/admin/update/rollback", { method: "POST", body: {} });
+    toast(r.message || "已回滚", "warn", 4000);
+    loadUpdateStatus();
+  } catch (e) { /* toast 已提示 */ }
+}
+
+async function saveSettings() {
+  const body = { values: {
+    signin_min: document.getElementById("set-signin-min").value,
+    signin_max: document.getElementById("set-signin-max").value,
+    register_gift: document.getElementById("set-register-gift").value,
+    site_name: document.getElementById("set-site-name").value,
+    checkin_mode: document.getElementById("set-checkin-mode").value,
+  }};
+  try {
+    const r = await api("/api/admin/settings", { method: "PUT", body });
+    toast("设置已保存，签到区间 " + r.signin_range[0] + "~" + r.signin_range[1] + " 分", "success");
+    loadSettingsView();
+  } catch (e) { /* toast 已提示 */ }
+}
+
+async function dbAction(action) {
+  const body = {
+    host: document.getElementById("db-host").value.trim(),
+    port: Number(document.getElementById("db-port").value || 3306),
+    user: document.getElementById("db-user").value.trim(),
+    password: document.getElementById("db-pass").value,
+    database: document.getElementById("db-name").value.trim(),
+    engine: "mysql",
+  };
+  const box = document.getElementById("db-result");
+  const btn = action === "test" ? document.getElementById("btn-db-test") : document.getElementById("btn-db-migrate");
+  btn.disabled = true;
+  box.innerHTML = '<span class="muted">⏳ ' + (action === "test" ? "正在测试连接…" : "正在迁移数据，请勿关闭页面…") + "</span>";
+  try {
+    const r = await api("/api/admin/db/" + action, { method: "POST", body });
+    if (action === "test") {
+      box.innerHTML = r.ok
+        ? '<span class="tag green"><i class="dot"></i>' + esc(r.message) + "</span>"
+        : '<span class="tag red"><i class="dot"></i>' + esc(r.message) + "</span>";
+    } else {
+      const rows = Object.entries(r.copied || {}).filter(([, n]) => n > 0)
+        .map(([t, n]) => "<b>" + t + "</b> " + fmtFull(n)).join(" · ");
+      box.innerHTML =
+        '<div style="background:#ecfdf5;border:1px solid #c9f3e1;border-radius:11px;padding:12px 14px;font-size:12.5px;color:#047857;line-height:1.9">' +
+        "✅ 迁移完成：" + rows +
+        "<br>引擎配置已持久化，<b>重启服务后切换到 MySQL</b>。原 SQLite 文件保留作备份。</div>";
+      loadSettingsView();
+    }
+  } catch (e) {
+    box.innerHTML = '<span class="tag red"><i class="dot"></i>' + esc(e.message) + "</span>";
+  } finally { btn.disabled = false; }
+}
+
+/* ==================== 通知与维护 ==================== */
+let _ntEditing = null; // 编辑中的通知 id
+
+function bindNoticesAdminView() {
+  document.getElementById("btn-nt-save").addEventListener("click", saveNotice);
+  document.getElementById("btn-nt-reset").addEventListener("click", () => { _ntEditing = null; resetNoticeForm(); });
+  document.getElementById("btn-mt-on").addEventListener("click", () => setMaintenance(true));
+  document.getElementById("btn-mt-off").addEventListener("click", () => setMaintenance(false));
+  document.getElementById("nt-tbody").addEventListener("click", async e => {
+    const ed = e.target.closest("[data-ntedit]"), del = e.target.closest("[data-ntdel]"), tg = e.target.closest("[data-nttoggle]");
+    if (ed) {
+      const n = JSON.parse(ed.dataset.ntedit);
+      _ntEditing = n.id;
+      document.getElementById("nt-title").value = n.title;
+      document.getElementById("nt-content").value = n.content;
+      document.getElementById("nt-level").value = n.level;
+      document.getElementById("nt-enabled").checked = !!n.enabled;
+      document.getElementById("nt-pinned").checked = !!n.pinned;
+      document.getElementById("nt-edit-hint").textContent = "正在编辑 #" + n.id;
+      document.getElementById("btn-nt-save").textContent = "保存修改";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    if (del) {
+      const n = JSON.parse(del.dataset.ntdel);
+      const ok = await confirmDialog("删除通知", "确定删除通知 <b>" + esc(n.title) + "</b> 吗？");
+      if (!ok) return;
+      try { await api("/api/admin/notices/" + n.id, { method: "DELETE" }); toast("通知已删除"); loadNoticesAdmin(); } catch (err) {}
+    }
+    if (tg) {
+      const n = JSON.parse(tg.dataset.nttoggle);
+      try {
+        await api("/api/admin/notices/" + n.id, { method: "PUT", body: { enabled: n.enabled ? 0 : 1 } });
+        toast(n.enabled ? "通知已停用" : "通知已启用");
+        loadNoticesAdmin();
+      } catch (err) {}
+    }
+  });
+}
+
+function resetNoticeForm() {
+  document.getElementById("nt-title").value = "";
+  document.getElementById("nt-content").value = "";
+  document.getElementById("nt-level").value = "info";
+  document.getElementById("nt-enabled").checked = true;
+  document.getElementById("nt-pinned").checked = false;
+  document.getElementById("nt-edit-hint").textContent = "新通知";
+  document.getElementById("btn-nt-save").textContent = "发布通知";
+}
+
+async function loadNoticesAdmin() {
+  const d = await api("/api/admin/notices?page_size=50", { silent: true });
+  document.getElementById("nt-count").textContent = "共 " + d.total + " 条";
+  const L = { info: ["📢", "blue"], warn: ["⚠️", "amber"], critical: ["🚨", "red"] };
+  document.getElementById("nt-tbody").innerHTML = d.items.length ? d.items.map(n => {
+    const [ic, cls] = L[n.level] || L.info;
+    return "<tr>" +
+      '<td><div class="cell-main">' + (n.pinned ? "📌 " : "") + esc(n.title) + '</div><div class="cell-sub">' + esc(n.content.slice(0, 60)) + (n.content.length > 60 ? "…" : "") + "</div></td>" +
+      '<td><span class="tag ' + cls + '">' + ic + " " + ({ info: "通知", warn: "注意", critical: "重要" }[n.level] || "通知") + "</span></td>" +
+      "<td>" + (n.enabled ? '<span class="tag green"><i class="dot"></i>展示中</span>' : '<span class="tag gray"><i class="dot"></i>已停用</span>') + "</td>" +
+      '<td class="muted">' + esc(n.created_by || "-") + "</td>" +
+      '<td class="muted" style="white-space:nowrap">' + n.created_at.slice(0, 16) + "</td>" +
+      '<td><div class="actions">' +
+        '<button class="btn btn-ghost btn-sm" data-nttoggle=\'' + esc(JSON.stringify({ id: n.id, enabled: n.enabled, title: n.title })) + "'>" + (n.enabled ? "停用" : "启用") + "</button>" +
+        '<button class="btn btn-ghost btn-sm" data-ntedit=\'' + esc(JSON.stringify(n)) + "\'>编辑</button>" +
+        '<button class="btn btn-danger btn-sm" data-ntdel=\'' + esc(JSON.stringify({ id: n.id, title: n.title })) + "\'>删除</button>" +
+      "</div></td>" +
+    "</tr>";
+  }).join("") : '<tr><td colspan="6"><div class="empty">' + ICONS.empty + "<p>还没有发布过通知</p></div></td></tr>";
+}
+
+async function saveNotice() {
+  const body = {
+    title: document.getElementById("nt-title").value.trim(),
+    content: document.getElementById("nt-content").value.trim(),
+    level: document.getElementById("nt-level").value,
+    enabled: document.getElementById("nt-enabled").checked ? 1 : 0,
+    pinned: document.getElementById("nt-pinned").checked ? 1 : 0,
+  };
+  if (!body.title || !body.content) { toast("请填写标题与内容", "warn"); return; }
+  try {
+    if (_ntEditing) {
+      await api("/api/admin/notices/" + _ntEditing, { method: "PUT", body });
+      toast("通知已更新");
+    } else {
+      await api("/api/admin/notices", { method: "POST", body });
+      toast("通知已发布，用户端即将展示", "success");
+    }
+    _ntEditing = null;
+    resetNoticeForm();
+    loadNoticesAdmin();
+  } catch (e) { /* toast 已提示 */ }
+}
+
+async function loadMaintenanceState() {
+  const d = await api("/api/admin/maintenance", { silent: true });
+  const tag = document.getElementById("mt-state");
+  if (d.enabled) {
+    tag.className = "tag amber";
+    tag.innerHTML = '<i class="dot pulse"></i>维护中';
+    document.getElementById("mt-msg").value = d.message || "";
+  } else {
+    tag.className = "tag green";
+    tag.innerHTML = '<i class="dot"></i>正常运行';
+  }
+}
+
+async function setMaintenance(on) {
+  if (on) {
+    const ok = await confirmDialog("开启维护模式",
+      "开启后<b>所有普通用户</b>将被拦截在维护界面，网关全部接口返回 503。<br>确认开启？",
+      { danger: true, okText: "确认开启" });
+    if (!ok) return;
+  }
+  try {
+    const msg = document.getElementById("mt-msg").value.trim();
+    await api("/api/admin/maintenance", { method: "PUT", body: { enabled: on, message: msg } });
+    toast(on ? "维护模式已开启" : "维护模式已关闭", on ? "warn" : "success");
+    loadMaintenanceState();
+  } catch (e) { /* toast 已提示 */ }
+}
+
+/* ==================== 密钥管理（管理员） ==================== */
+const akeyState = { page: 1, pageSize: 10 };
+
+function bindAdminKeysView() {
+  document.getElementById("akey-kw").addEventListener("input", debounce(() => { akeyState.page = 1; loadAdminKeys(); }));
+  document.getElementById("btn-akey-new").addEventListener("click", adminKeyCreateModal);
+  document.getElementById("akey-tbody").addEventListener("click", async e => {
+    const ed = e.target.closest("[data-akedit]"), dl = e.target.closest("[data-akdel]");
+    if (ed) adminKeyEditModal(JSON.parse(ed.dataset.akedit));
+    if (dl) {
+      const k = JSON.parse(dl.dataset.akdel);
+      const ok = await confirmDialog("吊销密钥", "确定吊销 <b>" + esc(k.owner) + "</b> 的密钥 <b>" + esc(k.name) + "</b> 吗？<br><span style='color:var(--text-3);font-size:12px'>使用该密钥的线上调用将立即失败，此操作会记录审计。</span>");
+      if (!ok) return;
+      try { await api("/api/admin/keys/" + k.id, { method: "DELETE" }); toast("密钥已吊销"); loadAdminKeys(); } catch (err) {}
+    }
+  });
+  document.getElementById("akey-tbody").addEventListener("change", async e => {
+    const sw = e.target.closest("[data-akswitch]");
+    if (!sw) return;
+    const k = JSON.parse(sw.dataset.akswitch);
+    try {
+      await api("/api/admin/keys/" + k.id, { method: "PUT", body: { status: sw.checked ? 1 : 0 } });
+      toast("密钥「" + k.name + "」已" + (sw.checked ? "启用" : "停用"));
+      loadAdminKeys();
+    } catch (err) { sw.checked = !sw.checked; }
+  });
+}
+
+function maskKey16(key) {
+  return key.slice(0, 10) + "••••" + key.slice(-4);
+}
+
+async function loadAdminKeys() {
+  const kw = document.getElementById("akey-kw").value.trim();
+  const d = await api(`/api/admin/keys?keyword=${encodeURIComponent(kw)}&page=${akeyState.page}&page_size=${akeyState.pageSize}`, { silent: true });
+  document.getElementById("akey-count").textContent = "共 " + fmtFull(d.total) + " 个密钥";
+  document.getElementById("akey-tbody").innerHTML = d.items.length ? d.items.map(k => {
+    const enabled = k.status === 1;
+    return "<tr>" +
+      '<td><div class="cell-main">' + esc(k.name) + "</div>" +
+        '<div class="cell-sub">持有人 <b>' + esc(k.owner_nickname || "-") + '</b> <span style="font-family:Consolas,monospace">@' + esc(k.owner_username || "-") + "</span>" +
+        (k.owner_role === "admin" ? ' <span class="tag purple" style="margin-left:4px">管理员</span>' : "") + "</div></td>" +
+      '<td class="mono" style="font-family:Consolas,monospace;font-size:12px">' + maskKey16(k.key) + "</td>" +
+      "<td>" + (k.allow_names && k.allow_names.length
+        ? '<span class="tag blue" title="' + esc(k.allow_names.join("、")) + '">' + k.allow_names.length + " 个接口</span>"
+        : '<span class="tag gray">不限</span>') + "</td>" +
+      "<td>" + (enabled ? '<span class="tag green"><i class="dot pulse"></i>启用中</span>' : '<span class="tag gray"><i class="dot"></i>已停用</span>') + "</td>" +
+      '<td class="muted">' + k.created_at.slice(0, 10) + "</td>" +
+      '<td class="muted">' + (k.last_used ? k.last_used.slice(0, 16) : "从未使用") + "</td>" +
+      '<td><div class="actions">' +
+        '<label class="switch" title="启用/停用"><input type="checkbox" data-akswitch=\'' + esc(JSON.stringify({ id: k.id, name: k.name })) + "'" + (enabled ? " checked" : "") + '><i></i></label>' +
+        '<button class="btn btn-ghost btn-sm" data-akedit=\'' + esc(JSON.stringify({ id: k.id, name: k.name, allowed_apis: k.allowed_apis || "", owner: k.owner_username })) + "\'>编辑</button>" +
+        '<button class="btn btn-danger btn-sm" data-akdel=\'' + esc(JSON.stringify({ id: k.id, name: k.name, owner: k.owner_username })) + "\'>吊销</button>" +
+      "</div></td>" +
+    "</tr>";
+  }).join("") : '<tr><td colspan="7"><div class="empty">' + ICONS.empty + "<p>没有匹配的密钥</p></div></td></tr>";
+  renderPagination(document.getElementById("akey-pager"), d.total, akeyState.page, akeyState.pageSize,
+    p => { akeyState.page = p; loadAdminKeys(); });
+}
+
+async function adminKeyUserOptions() {
+  const d = await api("/api/admin/keys/users", { silent: true });
+  return d.items || [];
+}
+
+async function adminKeyCreateModal() {
+  const users = await adminKeyUserOptions();
+  const apis = await loadAllApisForPick();
+  openKeyEditShell("代建密钥", users, apis, null, async payload => {
+    await api("/api/admin/keys", { method: "POST", body: payload });
+    toast("密钥已创建并写入审计");
+    loadAdminKeys();
+  }, true);
+}
+
+async function adminKeyEditModal(k) {
+  const apis = await loadAllApisForPick();
+  openKeyEditShell("编辑密钥 · @" + k.owner, null, apis, k, async payload => {
+    await api("/api/admin/keys/" + k.id, { method: "PUT", body: payload });
+    toast("密钥已更新");
+    loadAdminKeys();
+  }, false);
+}
+
+async function loadAllApisForPick() {
+  const d = await api("/api/admin/apis?page_size=100", { silent: true });
+  return (d.items || []).filter(a => a.status !== "offline").map(a => ({ id: a.id, name: a.name, path: a.path }));
+}
+
+/** 密钥创建/编辑共用弹窗骨架（管理员视角） */
+function openKeyEditShell(title, users, apis, existing, onSubmit, isCreate) {
+  const selected = new Set(existing ? (existing.allowed_apis || "").split(",").map(x => Number(x)).filter(x => x > 0) : []);
+  const rows = apis.map(a =>
+    '<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;cursor:pointer" class="wl-row">' +
+      '<input type="checkbox" data-wlid="' + a.id + '"' + (selected.has(a.id) ? " checked" : "") +
+        ' style="accent-color:var(--primary);width:15px;height:15px;flex:none">' +
+      '<span style="flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+        esc(a.name) + ' <span style="font-family:Consolas,monospace;color:var(--text-3);font-size:11px">' + esc(a.path) + "</span></span>" +
+    "</label>").join("");
+  const userSel = isCreate
+    ? '<div class="form-item"><label>持有人<span class="req">*</span></label><select class="select" id="ke-user">' +
+      (users || []).map(u => '<option value="' + u.id + '"' + (u.status !== 1 ? " disabled" : "") + ">" +
+        esc(u.nickname) + " @" + esc(u.username) + (u.role === "admin" ? "（管理员）" : "") + (u.status !== 1 ? " — 已禁用" : "") + "</option>").join("") +
+      "</select><div class=\"tip\">密钥将归属该用户，调用日志按其账号统计</div></div>"
+    : "";
+  const mask = openModal(
+    '<div class="modal-head"><b>' + esc(title) + '</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      userSel +
+      '<div class="form-item"><label>密钥名称<span class="req">*</span></label>' +
+        '<input class="input" id="ke-name" maxlength="40" value="' + esc(existing?.name || "") + '" placeholder="如：生产环境 / 测试环境"></div>' +
+      '<div class="form-item"><label>接口白名单（可选）</label>' +
+        '<div style="background:#f5f3ff;border:1px solid #e6defc;border-radius:10px;padding:9px 12px;font-size:12px;color:#6d28d9;line-height:1.7;margin-bottom:8px">不勾选 = 不限制（可调全部需密钥接口）。免登录接口不受白名单影响。</div>' +
+        '<input class="input" id="wl-search" placeholder="搜索接口名称 / 路径" style="margin-bottom:8px">' +
+        '<div style="max-height:220px;overflow-y:auto;background:#fafcff;border:1px solid var(--line);border-radius:10px" id="wl-list">' + rows + "</div>" +
+      "</div>" +
+    "</div>" +
+    '<div class="modal-foot">' +
+      '<button class="btn btn-ghost" data-close>取消</button>' +
+      '<button class="btn btn-primary" id="ke-save">' + (isCreate ? "创建密钥" : "保存") + "</button>" +
+    "</div>", { width: 540 });
+  mask.querySelector("#wl-search").addEventListener("input", e => {
+    const kw = e.target.value.trim().toLowerCase();
+    mask.querySelectorAll(".wl-row").forEach(r =>
+      r.style.display = !kw || r.textContent.toLowerCase().includes(kw) ? "" : "none");
+  });
+  mask.querySelector("#ke-save").addEventListener("click", async () => {
+    const name = mask.querySelector("#ke-name").value.trim();
+    if (!name) { toast("请填写密钥名称", "warn"); return; }
+    const ids = [];
+    mask.querySelectorAll("[data-wlid]:checked").forEach(cb => ids.push(Number(cb.dataset.wlid)));
+    const payload = { name, allowed_apis: ids };
+    if (isCreate) payload.user_id = Number(mask.querySelector("#ke-user").value);
+    try {
+      await onSubmit(payload);
+      mask.close();
+    } catch (e) { /* toast 已提示 */ }
+  });
+}
+
+/* ==================== 调用日志 ==================== */
+const logState = { page: 1, pageSize: 12 };
+
+function bindLogsView() {
+  ["log-kw", "log-result", "log-status", "log-from", "log-to"].forEach(id =>
+    document.getElementById(id).addEventListener(
+      id === "log-kw" ? "input" : "change",
+      id === "log-kw" ? debounce(() => { logState.page = 1; loadLogs(); }) : () => { logState.page = 1; loadLogs(); }));
+  document.getElementById("log-clear").addEventListener("click", () => {
+    ["log-kw", "log-result", "log-status", "log-from", "log-to"].forEach(id =>
+      document.getElementById(id).value = "");
+    logState.page = 1;
+    loadLogs();
+  });
+  document.getElementById("btn-log-clean").addEventListener("click", logCleanModal);
+  document.getElementById("btn-log-export").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-log-export");
+    btn.disabled = true; btn.textContent = "⏳ 导出中…";
+    try {
+      // 导出接口需要 Bearer 鉴权，不能直接跳转，改为带鉴权头取回 Blob 再触发下载
+      const res = await fetch("/api/admin/logs/export?" + logQuery(), {
+        headers: { "Authorization": "Bearer " + Auth.token }
+      });
+      if (!res.ok) throw new Error("导出失败 (" + res.status + ")");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "apistar-logs-" + new Date().toISOString().slice(0, 16).replace(/[:T]/g, "") + ".csv";
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast("日志已导出", "success");
+    } catch (e) {
+      toast(e.message || "导出失败", "error");
+    } finally {
+      btn.disabled = false; btn.textContent = "⬇ 导出 CSV";
+    }
+  });
+  document.getElementById("log-tbody").addEventListener("click", e => {
+    const tr = e.target.closest("tr[data-log]");
+    if (tr) logDetailModal(JSON.parse(tr.dataset.log));
+  });
+}
+
+function logQuery() {
+  const p = new URLSearchParams();
+  const kw = document.getElementById("log-kw").value.trim();
+  const result = document.getElementById("log-result").value;
+  const sc = document.getElementById("log-status").value;
+  const from = document.getElementById("log-from").value;
+  const to = document.getElementById("log-to").value;
+  if (kw) p.set("keyword", kw);
+  if (result) p.set("result", result);
+  if (sc) p.set("status_code", sc);
+  if (from) p.set("date_from", from);
+  if (to) p.set("date_to", to);
+  return p.toString();
+}
+
+function logDetailModal(l) {
+  const rows = [
+    ["接口名称", esc(l.api_name) + " " + methodBadge(l.method)],
+    ["调用时间", esc(l.created_at)],
+    ["调用方", "@" + esc(l.user)],
+    ["来源 IP", '<span class="mono" style="font-family:Consolas,monospace">' + esc(l.ip) + "</span>"],
+    ["状态码", codePill(l.status_code) + " " + (l.success ? '<span class="tag green"><i class="dot"></i>成功</span>' : '<span class="tag red"><i class="dot"></i>失败</span>')],
+    ["总耗时", latencyTag(l.latency)],
+    ["日志 ID", "#" + l.id]
+  ];
+  openModal(
+    '<div class="modal-head"><b>调用详情</b><button class="close" data-close>✕</button></div>' +
+    '<div class="modal-body">' +
+      '<div class="card" style="box-shadow:none;overflow:hidden"><div class="table-wrap"><table class="table" style="font-size:13px">' +
+        "<tbody>" + rows.map(r => '<tr><td style="width:96px;color:var(--text-3);font-size:12px">' + r[0] + '</td><td>' + r[1] + "</td></tr>").join("") + "</tbody>" +
+      "</table></div></div>" +
+      '<div style="margin-top:14px;background:#f7fbff;border:1px solid var(--line);border-radius:11px;padding:11px 14px;font-size:12.5px;color:var(--text-2);line-height:1.8">' +
+      "💡 日志为全量流水，可在顶部搜索框按接口名 / 用户名 / IP 过滤定位问题调用。</div>" +
+    "</div>" +
+    '<div class="modal-foot"><button class="btn btn-primary" data-close>知道了</button></div>', { width: 460 });
+}
+
+async function loadLogs() {
+  const d = await api(`/api/admin/logs?${logQuery()}&page=${logState.page}&page_size=${logState.pageSize}`, { silent: true });
+  const totalHint = document.getElementById("log-total-hint");
+  if (totalHint) totalHint.textContent = "共 " + fmtFull(d.total) + " 条";
+  document.getElementById("log-tbody").innerHTML = d.items.length ? d.items.map(l =>
+    "<tr data-log='" + esc(JSON.stringify(l)) + "' style='cursor:pointer' title='点击查看详情'>" +
+      '<td class="muted mono" style="font-family:Consolas,monospace;font-size:12px">' + l.created_at + "</td>" +
+      '<td><div class="cell-main" style="font-size:13px">' + esc(l.api_name) + "</div></td>" +
+      "<td>" + methodBadge(l.method) + "</td>" +
+      '<td><div class="flex"><div class="avatar" style="width:26px;height:26px;font-size:11px;background:linear-gradient(135deg,#64748b,#94a3b8)">' + initials(l.user) + "</div><span>" + esc(l.user) + "</span></div></td>" +
+      '<td class="mono" style="font-family:Consolas,monospace;font-size:12.5px">' + esc(l.ip) + "</td>" +
+      "<td>" + codePill(l.status_code) + "</td>" +
+      "<td>" + latencyTag(l.latency) + "</td>" +
+      "<td>" + (l.success ? '<span class="tag green"><i class="dot"></i>成功</span>' : '<span class="tag red"><i class="dot"></i>失败</span>') + "</td>" +
+    "</tr>").join("")
+    : '<tr><td colspan="8"><div class="empty">' + ICONS.empty + "<p>没有匹配的调用记录</p></div></td></tr>";
+  renderPagination(document.getElementById("log-pager"), d.total, logState.page, logState.pageSize, p => { logState.page = p; loadLogs(); });
+}
+
+/* ==================== 操作审计 ==================== */
+const auditState = { page: 1, pageSize: 15 };
+const AUDIT_ICON = {
+  "创建接口": "🆕", "更新接口": "✏️", "删除接口": "🗑️", "创建分类": "🆕", "更新分类": "✏️",
+  "删除分类": "🗑️", "创建用户": "🆕", "更新用户": "✏️", "删除用户": "🗑️",
+  "修改密码": "🔒", "清理日志": "🧹", "登录": "👋"
+};
+
+function bindAuditView() {
+  document.getElementById("audit-kw").addEventListener("input", debounce(() => { auditState.page = 1; loadAudit(); }));
+}
+
+async function loadAudit() {
+  const kw = document.getElementById("audit-kw").value.trim();
+  const d = await api(`/api/admin/audit?keyword=${encodeURIComponent(kw)}&page=${auditState.page}&page_size=${auditState.pageSize}`, { silent: true });
+  document.getElementById("audit-count").textContent = "共 " + fmtFull(d.total) + " 条记录";
+  document.getElementById("audit-tbody").innerHTML = d.items.length ? d.items.map(a =>
+    "<tr>" +
+      '<td class="muted" style="font-family:Consolas,monospace;font-size:12px;white-space:nowrap">' + a.created_at + "</td>" +
+      '<td><div class="flex"><div class="avatar" style="width:26px;height:26px;font-size:11px;background:linear-gradient(135deg,#64748b,#94a3b8)">' + initials(a.actor) + "</div><b style=\"font-size:12.5px\">" + esc(a.actor) + "</b></div></td>" +
+      '<td><span class="tag blue">' + (AUDIT_ICON[a.action] || "•") + " " + esc(a.action) + "</span></td>" +
+      '<td class="mono" style="font-family:Consolas,monospace;font-size:12.5px">' + esc(a.target || "-") + "</td>" +
+      '<td class="muted" style="font-size:12.5px">' + esc(a.detail || "-") + "</td>" +
+    "</tr>").join("")
+    : '<tr><td colspan="5"><div class="empty">' + ICONS.empty + "<p>暂无审计记录</p></div></td></tr>";
+  renderPagination(document.getElementById("audit-pager"), d.total, auditState.page, auditState.pageSize,
+    p => { auditState.page = p; loadAudit(); });
+}
+
+/* ==================== 日志清理 ==================== */
+function logCleanModal() {
+  api("/api/admin/logs/stats", { silent: true }).then(stats => {
+    const mask = openModal(
+      '<div class="modal-head"><b>清理调用日志</b><button class="close" data-close>✕</button></div>' +
+      '<div class="modal-body">' +
+        '<div class="card" style="box-shadow:none;padding:12px 15px;background:#f8fbff;font-size:12.5px;color:var(--text-2);line-height:1.9;margin-bottom:14px">' +
+          '当前日志总量 <b style="color:var(--text);font-size:15px">' + fmtFull(stats.total) + "</b> 条 · 最早记录 " + esc(stats.oldest) +
+        "</div>" +
+        '<div class="form-item"><label>删除多少天之前的日志？</label>' +
+          '<div class="flex" style="gap:8px;flex-wrap:wrap">' +
+            '<button class="chip" data-d="30">30 天前</button>' +
+            '<button class="chip" data-d="90">90 天前</button>' +
+            '<button class="chip" data-d="180">180 天前</button>' +
+            '<button class="chip" data-d="365">1 年前</button>' +
+            '<input class="input" id="lc-days" type="number" min="1" max="3650" value="90" style="width:110px"> 天前' +
+          "</div>" +
+          '<div class="tip">被删除的日志不可恢复，建议先导出 CSV 留存。审计日志不受影响。</div></div>' +
+      "</div>" +
+      '<div class="modal-foot">' +
+        '<button class="btn btn-ghost" data-close>取消</button>' +
+        '<button class="btn btn-danger" id="lc-go">确认清理</button>' +
+      "</div>", { width: 480 });
+    let days = 90;
+    mask.querySelectorAll("[data-d]").forEach(b => b.addEventListener("click", () => {
+      days = Number(b.dataset.d);
+      mask.querySelector("#lc-days").value = days;
+      mask.querySelectorAll("[data-d]").forEach(x => x.classList.toggle("active", x === b));
+    }));
+    mask.querySelector("#lc-days").addEventListener("input", e => { days = Number(e.target.value || 0); });
+    mask.querySelector("#lc-go").addEventListener("click", async () => {
+      if (!days || days < 1) { toast("请填写有效的天数", "warn"); return; }
+      try {
+        const r = await api("/api/admin/logs?before_days=" + days, { method: "DELETE" });
+        toast(r.deleted ? "已清理 " + fmtFull(r.deleted) + " 条日志" : "没有早于 " + days + " 天的日志", r.deleted ? "success" : "info");
+        mask.close();
+        loadLogs();
+      } catch (e) { /* toast 已提示 */ }
+    });
+  });
+}
+
+/* 所有声明就绪后再启动页面 */
+if (me) initPage();
+
+/* ---- 移动端抽屉导航 ---- */
+(function () {
+  const btn = document.getElementById("btn-hamburger");
+  const sidebar = document.querySelector(".sidebar");
+  const scrim = document.getElementById("drawer-scrim");
+  if (!btn || !sidebar || !scrim) return;
+  const close = () => { sidebar.classList.remove("open"); document.body.classList.remove("drawer-open"); };
+  btn.addEventListener("click", () => {
+    const open = sidebar.classList.toggle("open");
+    document.body.classList.toggle("drawer-open", open);
+  });
+  scrim.addEventListener("click", close);
+  // 点导航项后自动收起（移动端选择视图后回内容区）
+  sidebar.querySelectorAll(".nav a").forEach(a => a.addEventListener("click", close));
+  window.addEventListener("resize", () => { if (innerWidth > 860) close(); });
+})();
+</script>
+</body>
+</html>

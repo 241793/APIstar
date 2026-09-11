@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232e7cf6%22/><text x=%2250%22 y=%2272%22 font-size=%2260%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22 font-weight=%22bold%22>A</text></svg>">
+<title>登录 - APIStar 接口管理平台</title>
+<link rel="stylesheet" href="/static/common.css?v=10">
+<style>
+  body { background: #0f1222; }
+
+  .login-wrap {
+    display: grid; grid-template-columns: 1.15fr 1fr;
+    height: 100vh; overflow: hidden;
+  }
+
+  /* ---------- 左侧品牌区 ---------- */
+  .brand-panel {
+    position: relative; overflow: hidden;
+    background: linear-gradient(155deg, #0c2d5e 0%, #1257a8 48%, #0891b2 100%);
+    color: #fff; display: flex; flex-direction: column;
+    padding: 44px 56px;
+  }
+  .brand-panel::before, .brand-panel::after {
+    content: ""; position: absolute; border-radius: 50%;
+  }
+  .brand-panel::before {
+    width: 560px; height: 560px; right: -180px; top: -200px;
+    background: radial-gradient(circle, rgba(6, 182, 212, .48), transparent 65%);
+  }
+  .brand-panel::after {
+    width: 480px; height: 480px; left: -160px; bottom: -220px;
+    background: radial-gradient(circle, rgba(96, 165, 250, .38), transparent 65%);
+  }
+
+  .bp-logo { display: flex; align-items: center; gap: 12px; z-index: 2; }
+  .bp-logo .logo {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, #2e7cf6, #06b6d4);
+    display: grid; place-items: center; font-weight: 800; font-size: 19px;
+    box-shadow: 0 10px 26px -8px rgba(6, 182, 212, .8);
+  }
+  .bp-logo b { font-size: 19px; letter-spacing: .5px; }
+  a.bp-logo { text-decoration: none; color: #fff; }
+  .bp-back { position: absolute; top: 26px; right: 34px; color: #9cc4e4; font-size: 13px; z-index: 5; }
+  .bp-back:hover { color: #fff; }
+  .bp-logo span { display: block; font-size: 11px; color: #9cc4e4; letter-spacing: 2.6px; margin-top: 1px; }
+
+  .bp-main { position: relative; z-index: 2; margin: auto 0; max-width: 500px; }
+  .bp-main h1 { font-size: 34px; line-height: 1.35; font-weight: 700; letter-spacing: .5px; }
+  .bp-main h1 em {
+    font-style: normal;
+    background: linear-gradient(90deg, #7dd3fc, #67e8f9);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .bp-main p { margin-top: 16px; color: #b8d6ee; font-size: 14.5px; line-height: 1.9; }
+
+  .bp-feats { margin-top: 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .bp-feat {
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 14px; padding: 15px 16px;
+    backdrop-filter: blur(6px);
+  }
+  .bp-feat .fi {
+    width: 34px; height: 34px; border-radius: 9px; margin-bottom: 10px;
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .bp-feat b { display: block; font-size: 13.5px; margin-bottom: 3px; }
+  .bp-feat span { font-size: 12px; color: #a9c8e2; line-height: 1.55; }
+
+  .bp-foot { position: relative; z-index: 2; color: #7aa4c6; font-size: 12px; display: flex; gap: 20px; }
+  .bp-foot b { color: #b5dcf5; font-variant-numeric: tabular-nums; }
+
+  /* 代码飘窗 */
+  .bp-code {
+    position: absolute; right: 52px; bottom: 120px; z-index: 2;
+    background: rgba(6, 24, 48, .72); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px; padding: 14px 18px;
+    font-family: Consolas, monospace; font-size: 12px; line-height: 1.9;
+    color: #cfe4f5; box-shadow: 0 20px 50px -18px rgba(0,0,0,.6);
+    animation: floaty 5s ease-in-out infinite;
+  }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  .bp-code .c { color: #628cb0; }
+  .bp-code .g { color: #6ee7a0; }
+  .bp-code .b { color: #7dd3fc; }
+
+  /* ---------- 右侧表单区 ---------- */
+  .form-panel {
+    background: #ffffff;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 48px 64px; position: relative;
+  }
+  .fp-box { width: 100%; max-width: 400px; margin: 0 auto; }
+  .fp-box h2 { font-size: 25px; font-weight: 700; }
+  .fp-box .sub { color: var(--text-3); margin: 8px 0 30px; font-size: 13.5px; }
+
+  .fp-field { margin-bottom: 18px; }
+  .fp-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 7px; }
+  .fp-input-wrap { position: relative; }
+  .fp-input-wrap svg {
+    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    width: 17px; height: 17px; color: #b6c0d4; pointer-events: none;
+  }
+  .fp-input-wrap .input { height: 46px; padding: 0 14px 0 40px; font-size: 14px; border-radius: 12px; }
+  .fp-input-wrap .input:focus { border-color: #a5b4fc; box-shadow: 0 0 0 4px rgba(99,102,241,.12); }
+  .eye-btn {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    border: none; background: transparent; cursor: pointer; color: var(--text-3);
+    width: 34px; height: 34px; border-radius: 8px; font-size: 15px;
+  }
+  .eye-btn:hover { background: #f1f5f9; }
+
+  .btn-login {
+    height: 47px; border: none; border-radius: 12px; width: 100%;
+    background: linear-gradient(135deg, #2e7cf6, #06b6d4);
+    color: #fff; font-size: 15px; font-weight: 600; font-family: var(--font);
+    cursor: pointer; margin-top: 6px;
+    box-shadow: 0 12px 24px -10px rgba(46, 124, 246, .6);
+    transition: all .18s;
+  }
+  .btn-login:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 15px 28px -10px rgba(46, 124, 246, .65); }
+  .btn-login:active { transform: none; }
+  .btn-login:disabled { opacity: .6; transform: none; cursor: wait; }
+
+  .login-error {
+    display: none; margin-bottom: 16px;
+    background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
+    font-size: 13px; border-radius: 10px; padding: 10px 13px;
+  }
+  .login-error.show { display: block; animation: shake .35s; }
+  @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+
+  @media (max-width: 900px) {
+    .login-wrap { grid-template-columns: 1fr; }
+    .brand-panel { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="login-wrap">
+
+  <!-- 左侧品牌区 -->
+  <div class="brand-panel">
+    <a href="/" class="bp-back">‹ 返回官网</a>
+    <a class="bp-logo" href="/">
+      <div class="logo">A</div>
+      <div><b>APIStar</b><span>API MANAGEMENT PLATFORM</span></div>
+    </a>
+
+    <div class="bp-main">
+      <h1>让每一个接口<br>都被 <em>规范地管理</em> 与 <em>高效地使用</em></h1>
+      <p>接口全生命周期管理平台：从定义、发布、监控到开放调用，为团队提供统一的接口资产目录、实时调用分析与安全凭证体系。</p>
+      <div class="bp-feats">
+        <div class="bp-feat">
+          <div class="fi" style="background:rgba(46,124,246,.42)">📦</div>
+          <b>接口资产管理</b>
+          <span>分类目录 · 版本管理 · 多环境状态流转</span>
+        </div>
+        <div class="bp-feat">
+          <div class="fi" style="background:rgba(16,185,129,.35)">📊</div>
+          <b>实时调用分析</b>
+          <span>调用量趋势 · 成功率 · 耗时分布监控</span>
+        </div>
+        <div class="bp-feat">
+          <div class="fi" style="background:rgba(245,158,11,.38)">🧪</div>
+          <b>在线 Mock 测试</b>
+          <span>浏览器内直接调试 · 自动校验必填参数</span>
+        </div>
+        <div class="bp-feat">
+          <div class="fi" style="background:rgba(6,182,212,.38)">🔑</div>
+          <b>安全凭证体系</b>
+          <span>API Key 多环境隔离 · 一键签发吊销</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bp-code">
+      <span class="c"># 快速接入</span><br>
+      $ curl <span class="b">https://api.apistar.cn/v1/user</span> \<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;-H <span class="g">"Authorization: Bearer sk-prod-****"</span>
+    </div>
+
+    <div class="bp-foot">
+      <span>已托管接口 <b>1,200+</b></span>
+      <span>日均调用 <b>8,500w</b></span>
+      <span>接入团队 <b>86</b></span>
+    </div>
+  </div>
+
+  <!-- 右侧表单区 -->
+  <div class="form-panel">
+    <div class="fp-box">
+      <h2>欢迎回来 👋</h2>
+      <div class="sub">登录 APIStar 控制台，继续管理你的接口</div>
+
+      <div class="login-error" id="login-error"></div>
+
+      <form id="login-form" autocomplete="off">
+        <div class="fp-field">
+          <label>用户名</label>
+          <div class="fp-input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input class="input" id="f-username" placeholder="请输入用户名" required>
+          </div>
+        </div>
+        <div class="fp-field">
+          <label>密码</label>
+          <div class="fp-input-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input class="input" id="f-password" type="password" placeholder="请输入密码" required>
+            <button type="button" class="eye-btn" id="btn-eye" title="显示/隐藏密码">👁</button>
+          </div>
+        </div>
+        <button class="btn-login" id="btn-login" type="submit">登 录</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/static/common.js?v=10"></script>
+<script>
+  const errBox = document.getElementById("login-error");
+  const btn = document.getElementById("btn-login");
+
+  document.getElementById("btn-eye").addEventListener("click", () => {
+    const p = document.getElementById("f-password");
+    p.type = p.type === "password" ? "text" : "password";
+  });
+
+
+  document.getElementById("login-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    errBox.classList.remove("show");
+    const username = document.getElementById("f-username").value.trim();
+    const password = document.getElementById("f-password").value;
+    btn.disabled = true; btn.textContent = "正在登录…";
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "登录失败");
+      Auth.save(data.token, data.user);
+      location.href = data.user.role === "admin" ? "/admin" : "/console";
+    } catch (err) {
+      errBox.textContent = err.message;
+      errBox.classList.remove("show");
+      void errBox.offsetWidth;
+      errBox.classList.add("show");
+      btn.disabled = false; btn.textContent = "登 录";
+    }
+  });
+</script>
+</body>
+</html>

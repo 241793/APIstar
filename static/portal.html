@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APIStar — 接口管理平台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232e7cf6%22/><text x=%2250%22 y=%2272%22 font-size=%2260%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22 font-weight=%22bold%22>A</text></svg>">
+<style>
+/* ============ 设计基调：Apple 风格 ============
+   系统字体栈 / 大字号负字距 / 磨砂玻璃材质 / 白与深灰的克制配色 */
+:root {
+  --blue: #0071e3;          /* Apple 主蓝 */
+  --blue-deep: #0066cc;
+  --text: #1d1d1f;          /* 近黑 */
+  --text-2: #6e6e73;        /* Apple 灰 */
+  --text-3: #86868b;
+  --bg: #ffffff;
+  --bg-2: #f5f5f7;          /* Apple 浅灰段 */
+  --hairline: rgba(0,0,0,.08);
+  --nav-h: 52px;
+  --ease: cubic-bezier(.25,.1,.25,1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC",
+               "Helvetica Neue", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  font-size: 17px; line-height: 1.47;
+  letter-spacing: .012em;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ============ 导航：磨砂玻璃，滚动时内容从其下穿过 ============ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 100;
+  background: rgba(251,251,253,.78);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid transparent;
+  transition: border-color .3s var(--ease);
+}
+.nav.scrolled { border-bottom-color: var(--hairline); }
+.nav-inner {
+  max-width: 1024px; margin: 0 auto; height: 100%;
+  display: flex; align-items: center; gap: 34px; padding: 0 22px;
+}
+.nav .logo { display: flex; align-items: center; gap: 9px; color: var(--text); font-weight: 600; font-size: 17px; letter-spacing: -0.02em; }
+.nav .logo svg { width: 22px; height: 22px; }
+.nav a.nav-link { color: rgba(0,0,0,.8); font-size: 12.5px; letter-spacing: -0.01em; transition: color .2s; }
+.nav a.nav-link:hover { color: var(--text); text-decoration: none; }
+.nav .spacer { flex: 1; }
+.btn-nav {
+  display: inline-block; padding: 6px 15px; border-radius: 980px;
+  background: var(--blue); color: #fff; font-size: 12.5px; font-weight: 500;
+  transition: background .2s, transform .1s;
+}
+.btn-nav:hover { background: var(--blue-deep); text-decoration: none; }
+.btn-nav:active { transform: scale(.97); }
+
+/* ============ Hero：大字号紧排 + 渐变文字 ============ */
+.hero {
+  padding: calc(var(--nav-h) + 92px) 22px 86px;
+  text-align: center;
+  background: linear-gradient(180deg, #fbfbfd 0%, #f5f5f7 100%);
+}
+.hero .eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--blue); font-weight: 600;
+  background: rgba(0,113,227,.08); border: 1px solid rgba(0,113,227,.18);
+  padding: 5px 14px; border-radius: 980px; margin-bottom: 26px;
+}
+.hero h1 {
+  font-size: clamp(44px, 8vw, 84px);
+  line-height: 1.05; letter-spacing: -0.028em; font-weight: 700;
+  margin: 0 auto 18px; max-width: 900px;
+}
+.hero h1 .grad {
+  background: linear-gradient(94deg, #0071e3 8%, #42a5f5 46%, #a259ff 88%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero p.sub {
+  font-size: clamp(19px, 2.6vw, 25px); color: var(--text-2);
+  letter-spacing: .012em; max-width: 640px; margin: 0 auto 34px; line-height: 1.42;
+}
+.hero .cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.btn-hero {
+  padding: 13px 30px; border-radius: 980px; font-size: 16.5px; font-weight: 500;
+  transition: transform .1s, background .2s, box-shadow .2s;
+}
+.btn-hero:active { transform: scale(.97); }
+.btn-primary { background: var(--blue); color: #fff; box-shadow: 0 8px 24px -10px rgba(0,113,227,.55); }
+.btn-primary:hover { background: var(--blue-deep); text-decoration: none; }
+.btn-ghost { background: transparent; color: var(--blue); border: 1.5px solid rgba(0,113,227,.45); }
+.btn-ghost:hover { background: rgba(0,113,227,.06); text-decoration: none; }
+
+/* ============ 统计条 ============ */
+.stats {
+  max-width: 980px; margin: -46px auto 0; padding: 0 22px; position: relative; z-index: 2;
+}
+.stats .grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: rgba(255,255,255,.72);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255,255,255,.6);
+  border-radius: 22px;
+  box-shadow: 0 22px 50px -24px rgba(0,0,0,.22);
+}
+.stats .cell { padding: 26px 12px; text-align: center; }
+.stats .cell + .cell { border-left: 1px solid var(--hairline); }
+.stats b { display: block; font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+.stats span { font-size: 12.5px; color: var(--text-3); }
+
+/* ============ 区块通用 ============ */
+section.block { padding: 100px 22px; max-width: 1120px; margin: 0 auto; }
+.block-head { text-align: center; margin-bottom: 52px; }
+.block-head h2 { font-size: clamp(30px, 4.6vw, 48px); font-weight: 700; letter-spacing: -0.022em; line-height: 1.1; margin-bottom: 12px; }
+.block-head p { color: var(--text-2); font-size: 18px; max-width: 560px; margin: 0 auto; }
+
+/* ============ 接口广场 ============ */
+.market { background: var(--bg-2); max-width: none; }
+.market-inner { max-width: 1120px; margin: 0 auto; }
+.chips { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; margin-bottom: 38px; }
+.chip {
+  padding: 8px 18px; border-radius: 980px; border: none; cursor: pointer;
+  background: rgba(0,0,0,.055); color: var(--text-2); font-size: 13.5px; font-family: inherit;
+  transition: background .2s, color .2s, transform .1s;
+}
+.chip:hover { background: rgba(0,0,0,.1); }
+.chip:active { transform: scale(.96); }
+.chip.active { background: var(--text); color: #fff; }
+.grid-apis {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;
+}
+.api-card {
+  background: #fff; border-radius: 20px; padding: 24px;
+  border: 1px solid rgba(0,0,0,.05);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  display: flex; flex-direction: column;
+}
+.api-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -18px rgba(0,0,0,.18); }
+.api-card .top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.api-card .icon {
+  width: 44px; height: 44px; border-radius: 12px; flex: none;
+  background: linear-gradient(135deg, #eaf3ff, #f2ecff);
+  display: grid; place-items: center; font-size: 22px;
+}
+.api-card h3 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.api-card .path {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 11.5px; color: var(--text-3);
+  background: var(--bg-2); border-radius: 7px; padding: 5px 9px; margin-bottom: 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.api-card .desc { font-size: 13.5px; color: var(--text-2); line-height: 1.55; flex: 1; margin-bottom: 16px; }
+.api-card .foot { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.badge {
+  font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 980px;
+  font-family: ui-monospace, Consolas, monospace;
+}
+.badge.get { background: #e8f7ee; color: #1d8a46; }
+.badge.post { background: #e8f0fe; color: #0b57d0; }
+.badge.put { background: #fef4e5; color: #b06000; }
+.badge.delete, .badge.patch { background: #fdecee; color: #c5221f; }
+.tag-min { font-size: 11px; color: var(--text-3); padding: 3px 8px; background: var(--bg-2); border-radius: 980px; }
+.tag-cost { font-size: 11px; color: #b06000; padding: 3px 8px; background: #fef4e5; border-radius: 980px; font-weight: 600; }
+.tag-key { font-size: 11px; color: #6d28d9; padding: 3px 8px; background: #f1ecfe; border-radius: 980px; }
+.empty-tip { text-align: center; color: var(--text-3); padding: 60px 0; grid-column: 1/-1; }
+
+/* ============ 黑色特性带 ============ */
+.dark { background: #0b0b0d; color: #f5f5f7; max-width: none; }
+.dark .block-head h2 { color: #f5f5f7; }
+.dark .block-head p { color: #a1a1a6; }
+.feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; }
+.feat { background: #161617; border-radius: 22px; padding: 30px 26px; }
+.feat .fi { font-size: 30px; margin-bottom: 16px; }
+.feat h3 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
+.feat p { font-size: 13.5px; color: #a1a1a6; line-height: 1.6; }
+
+/* ============ 三步接入 ============ */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.step { background: #fff; border: 1px solid var(--hairline); border-radius: 22px; padding: 30px 26px; }
+.step .n {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--blue); color: #fff; font-weight: 700; font-size: 15px; margin-bottom: 16px;
+}
+.step h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.01em; }
+.step p { font-size: 13.5px; color: var(--text-2); line-height: 1.6; margin-bottom: 14px; }
+.step pre {
+  background: #161617; color: #a8e0ff; border-radius: 12px; padding: 13px 15px;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 11.5px;
+  line-height: 1.7; overflow-x: auto; white-space: pre;
+}
+.step pre .c { color: #6e6e73; }
+
+/* ============ CTA 与页脚 ============ */
+.cta-block { text-align: center; padding: 90px 22px 100px; background: var(--bg-2); }
+.cta-block h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 700; letter-spacing: -0.022em; margin-bottom: 14px; }
+.cta-block p { color: var(--text-2); margin-bottom: 30px; font-size: 17px; }
+footer { border-top: 1px solid var(--hairline); padding: 26px 22px; }
+footer .inner { max-width: 1024px; margin: 0 auto; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; color: var(--text-3); font-size: 12px; }
+footer .inner a { color: var(--text-2); }
+
+/* ============ 进场动画：淡入上移，尊重 reduced-motion ============ */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 760px) {
+  .nav a.nav-link.hide-s { display: none; }
+  .stats .grid { grid-template-columns: repeat(2, 1fr); }
+  .stats .cell:nth-child(3) { border-left: none; border-top: 1px solid var(--hairline); }
+  .stats .cell:nth-child(4) { border-top: 1px solid var(--hairline); }
+  .steps { grid-template-columns: 1fr; }
+  section.block { padding: 70px 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 导航：磨砂玻璃 -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="logo" href="/">
+      <svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#0071e3"/><text x="50" y="71" font-size="56" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="bold">A</text></svg>
+      APIStar
+    </a>
+    <a class="nav-link hide-s" href="#market">接口广场</a>
+    <a class="nav-link hide-s" href="#features">平台能力</a>
+    <a class="nav-link hide-s" href="#start">快速接入</a>
+    <span class="spacer"></span>
+    <a class="btn-nav" id="nav-user-link" href="/login">登录 / 注册</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="eyebrow">⚡ 全新发布 · 积分计费与实时监控</div>
+  <h1>每一个接口，<br>都<span class="grad">规范地管理</span>、<br><span class="grad">高效地分发</span>。</h1>
+  <p class="sub">APIStar 是一站式接口管理平台 —— 从定义、上架、计费到开放调用，为你的团队提供统一的接口资产目录与安全凭证体系。</p>
+  <div class="cta">
+    <a class="btn-hero btn-primary" href="/login">立即开始</a>
+    <a class="btn-hero btn-ghost" href="#market">浏览接口广场</a>
+  </div>
+</header>
+
+<!-- 统计条 -->
+<div class="stats reveal">
+  <div class="grid">
+    <div class="cell"><b id="st-apis">—</b><span>在线接口</span></div>
+    <div class="cell"><b id="st-calls">—</b><span>累计调用</span></div>
+    <div class="cell"><b id="st-users">—</b><span>开发者</span></div>
+    <div class="cell"><b id="st-cates">—</b><span>能力分类</span></div>
+  </div>
+</div>
+
+<!-- 接口广场 -->
+<section class="market" id="market">
+  <div class="market-inner block">
+    <div class="block-head reveal">
+      <h2>接口广场</h2>
+      <p>由平台管理员发布的开放接口，注册后即可创建密钥调用</p>
+    </div>
+    <div class="chips reveal" id="cate-chips"></div>
+    <div class="grid-apis reveal" id="api-grid">
+      <div class="empty-tip">正在加载接口…</div>
+    </div>
+  </div>
+</section>
+
+<!-- 平台能力 -->
+<section class="block dark" id="features">
+  <div class="block-head reveal">
+    <h2>为接口的完整生命周期而设计</h2>
+    <p>管理、分发、计费、监控 —— 一套平台全部覆盖</p>
+  </div>
+  <div class="feats">
+    <div class="feat reveal"><div class="fi">🧩</div><h3>多形态接口</h3><p>内置服务、Python 插件沙箱、第三方转发、Mock 自定义，四类接口统一上架与分发。</p></div>
+    <div class="feat reveal"><div class="fi">🔑</div><h3>安全凭证</h3><p>API Key 多环境隔离、接口级白名单授权、PBKDF2 加盐哈希与登录防爆破。</p></div>
+    <div class="feat reveal"><div class="fi">💰</div><h3>积分计费</h3><p>按接口灵活定价，仅成功调用扣费；签到与充值双通道，流水全程可溯。</p></div>
+    <div class="feat reveal"><div class="fi">📊</div><h3>实时监控</h3><p>调用趋势、耗时分布、状态码统计与实时调用流，健康状态一屏掌握。</p></div>
+  </div>
+</section>
+
+<!-- 快速接入 -->
+<section class="block" id="start">
+  <div class="block-head reveal">
+    <h2>三步完成接入</h2>
+    <p>从注册到第一个成功调用，不超过五分钟</p>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="n">1</div><h3>注册并创建密钥</h3>
+      <p>登录控制台后在「我的密钥」一键创建专属 API Key。</p>
+      <pre><span class="c"># 控制台操作</span>
+我的密钥 → 创建密钥</pre>
+    </div>
+    <div class="step reveal">
+      <div class="n">2</div><h3>浏览接口文档</h3>
+      <p>接口广场查看每个接口的参数定义与响应示例。</p>
+      <pre><span class="c"># 文档齐全</span>
+参数表 / curl 示例 / 在线调试</pre>
+    </div>
+    <div class="step reveal">
+      <div class="n">3</div><h3>发起真实调用</h3>
+      <p>请求头携带密钥，向网关发起真实请求。</p>
+      <pre>curl "<span class="c">{host}</span>/svc/weather?city=上海" \
+  -H "Authorization: Bearer sk-****"</pre>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-block">
+  <h2>准备好开放你的接口了吗？</h2>
+  <p>登录控制台，几分钟内把你的接口变成可分发的开放能力。</p>
+  <a class="btn-hero btn-primary" href="/login" style="display:inline-block">进入控制台</a>
+</section>
+
+<footer>
+  <div class="inner">
+    <span>© 2026 APIStar 接口管理平台</span>
+    <a href="/login">登录</a>
+    <a href="/console">控制台</a>
+    <a href="/docs/export" target="_blank">接口文档</a>
+    <span style="margin-left:auto">FastAPI · SQLite / MySQL · WebSocket</span>
+  </div>
+</footer>
+
+<script>
+/* ============ 登录态感知：已登录显示控制台入口 ============ */
+(function () {
+  try {
+    const token = localStorage.getItem("apistar_token");
+    const user = JSON.parse(localStorage.getItem("apistar_user") || "null");
+    const link = document.getElementById("nav-user-link");
+    if (token && user) {
+      link.textContent = "进入控制台 →";
+      link.href = user.role === "admin" ? "/admin" : "/console";
+    }
+  } catch (e) {}
+})();
+
+/* ============ 导航滚动描边 ============ */
+const nav = document.getElementById("nav");
+addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 8), { passive: true });
+
+/* ============ 滚动进场 ============ */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+}), { threshold: 0.12 });
+document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+/* ============ 数据加载 ============ */
+const fmt = n => n >= 10000 ? (n/10000).toFixed(n % 10000 === 0 ? 0 : 1) + "w+" : (n||0).toLocaleString("en-US");
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let curCate = 0, curKw = "";
+
+async function loadSummary() {
+  try {
+    const d = await (await fetch("/api/portal/summary")).json();
+    // 数字滚动进场（respect reduced-motion：直接落值）
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const set = (id, val) => {
+      const el = document.getElementById(id);
+      if (reduce) { el.textContent = fmt(val); return; }
+      const t0 = performance.now(), dur = 1100;
+      (function tick(t) {
+        const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = fmt(Math.round(val * e));
+        if (p < 1) requestAnimationFrame(tick);
+      })(t0);
+    };
+    set("st-apis", d.api_online); set("st-calls", d.calls_total);
+    set("st-users", d.users); set("st-cates", d.categories);
+  } catch (e) {}
+}
+
+async function loadApis() {
+  const grid = document.getElementById("api-grid");
+  try {
+    const q = new URLSearchParams({ category_id: curCate, keyword: curKw, page_size: 36 });
+    const d = await (await fetch("/api/portal/apis?" + q)).json();
+    // 分类 chips
+    document.getElementById("cate-chips").innerHTML =
+      '<button class="chip' + (curCate === 0 ? " active" : "") + '" data-c="0">全部</button>' +
+      d.categories.map(c => '<button class="chip' + (curCate === c.id ? " active" : "") + '" data-c="' + c.id + '">' + esc(c.name) + " · " + c.n + "</button>").join("");
+    document.querySelectorAll("#cate-chips .chip").forEach(b =>
+      b.addEventListener("click", () => { curCate = Number(b.dataset.c); loadApis(); }));
+    // 卡片
+    grid.innerHTML = d.items.length ? d.items.map(a =>
+      '<article class="api-card">' +
+        '<div class="top"><span class="icon">' + (a.icon || "🔌") + '</span><h3>' + esc(a.name) + "</h3></div>" +
+        '<div class="path">' + esc(a.method) + " " + esc(a.path) + "</div>" +
+        '<div class="desc">' + esc(a.description || "暂无描述") + "</div>" +
+        '<div class="foot">' +
+          '<span class="badge ' + a.method.toLowerCase() + '">' + esc(a.method) + "</span>" +
+          '<span class="tag-min">' + esc(a.category_name || "未分类") + "</span>" +
+          (a.cost ? '<span class="tag-cost">' + a.cost + " 分/次</span>" : '<span class="tag-min">免费</span>') +
+          (a.auth_type === "login" ? '<span class="tag-key">需密钥</span>' : '<span class="tag-min">免登录</span>') +
+          '<span class="tag-min" style="margin-left:auto">' + fmt(a.call_count) + " 次调用</span>" +
+        "</div>" +
+      "</article>").join("")
+      : '<div class="empty-tip">该分类下暂无展示中的接口</div>';
+  } catch (e) {
+    grid.innerHTML = '<div class="empty-tip">接口加载失败，请稍后刷新</div>';
+  }
+}
+
+loadSummary();
+loadApis();
+</script>
+</body>
+</html>

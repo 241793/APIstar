@@ -1,0 +1,26 @@
+services:
+  apistar:
+    build: .
+    container_name: apistar
+    ports:
+      - "${APISTAR_PORT:-8000}:8000"
+    volumes:
+      - apistar-data:/data          # SQLite 数据持久化（含 WAL 文件）
+      - apistar-code:/app           # 应用代码卷：在线更新写入此处，容器重建不丢失
+    environment:
+      APISTAR_WORKERS: "${APISTAR_WORKERS:-2}"          # 多 worker 并发
+      APISTAR_RATE_BACKEND: "sqlite"                     # 多 worker 必须共享限流窗口
+      APISTAR_SESSION_TTL_HOURS: "${APISTAR_SESSION_TTL_HOURS:-72}"
+      APISTAR_LOGIN_MAX_FAILURES: "${APISTAR_LOGIN_MAX_FAILURES:-5}"
+      # APISTAR_FORCE_SYNC_IMAGE: "1"                   # 需要用镜像内代码覆盖卷时打开
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  apistar-data:
+  apistar-code:
